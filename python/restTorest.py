@@ -1,4 +1,3 @@
-from kubernetes import client, config
 import yaml
 import logging
 

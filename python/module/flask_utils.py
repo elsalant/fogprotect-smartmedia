@@ -1,6 +1,6 @@
 from flask import Flask, request
 from .kafka_utils import KafkaUtils
-from .curl_utils import composeAndExecuteCurl, handleQuery
+from .curl_utils import composeAndExecuteOPACurl, handleQuery
 import yaml
 
 import logging
@@ -72,7 +72,7 @@ def getAll(queryString=None):
     logging.debug('role = ', role, " organization = ", organization)
     if (not TESTING):
     # Determine if the requester has access to this URL.  If the requested endpoint shows up in blockDict, then return 500
-        blockDict = composeAndExecuteCurl(role, OPA_BLOCK_URL, queryString)
+        blockDict = composeAndExecuteOPACurl(role, OPA_BLOCK_URL, queryString)
         for resultDict in blockDict['result']:
             blockURL = resultDict['action']
             jString = "\role\": " + role + \
@@ -87,7 +87,7 @@ def getAll(queryString=None):
                 KafkaUtils.logToKafka(jString, KafkaUtils.KAFKA_ALLOW_TOPIC)
 
     # Get the filter constraints from OPA
-        filterDict = composeAndExecuteCurl(role, OPA_FILTER_URL, queryString)   # queryString not needed here
+        filterDict = composeAndExecuteOPACurl(role, OPA_FILTER_URL, queryString)   # queryString not needed here
         logging.debug('filterDict = ' + str(filterDict))
 
     # Go out to the destination URL based on the situation statue

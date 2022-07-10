@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: filteropa
+  namespace: default
+data:
+  OPA_SERVER: opa.katalog-system
+  QUERYGW_URI: chatterbox-be.chatterbox:4000
+  PYTHONUNBUFFERED: "1"
+  PYTHONIOENCODING: UTF-8
+  FOGPROTECT_KAFKA_SERVER: "172.31.35.158:9092"

@@ -13,7 +13,7 @@ OPA_BLOCK_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/kata
 OPA_HEADER = {"Content-Type": "application/json"}
 ASSET_NAMESPACE = os.getenv("ASSET_NAMESPACE") if os.getenv("ASSET_NAMESPACE") else 'default'
 
-def composeAndExecuteCurl(role, queryURL, passedURL):
+def composeAndExecuteOPACurl(role, queryURL, passedURL):
     # The assumption is that the if there are query parameters (queryString), then this is prefixed by a "?"
 
     parsedURL = urlparse.urlparse(passedURL)

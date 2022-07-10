@@ -1,8 +1,5 @@
-import logging
 import os
-import json
 from json import loads
-import boto3
 from kafka import KafkaProducer
 from kafka import KafkaConsumer
 

@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: 1.1.0
+description: A Helm chart for 2d half of FogProtect SmartMedia use case 
+name: smartmedia-chart
+type: application
+version: 0.0.1
