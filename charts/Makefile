@@ -38,3 +38,7 @@ helm-package:
 helm-push:
 	helm push ${TEMP}/${HELM_CHART_NAME}-${HELM_TAGNAME}.tgz ${HELM_REPO}
 
+.PHONY: helm-install
+helm-install:
+	helm install $(HELM_RELEASE) ${HELM_REPO}/${HELM_CHART_NAME}
+
