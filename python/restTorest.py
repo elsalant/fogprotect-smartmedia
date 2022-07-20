@@ -7,7 +7,7 @@ ACCESS_DENIED_CODE = 403
 ERROR_CODE = 406
 VALID_RETURN = 200
 
-TEST = True   # allows testing outside of Fybrik/Kubernetes environment
+TEST = False   # allows testing outside of Fybrik/Kubernetes environment
 
 FIXED_SCHEMA_ROLE = 'missing role'
 FIXED_SCHEMA_ORG  = 'missing org'
@@ -26,7 +26,8 @@ def readConfig(CM_PATH):
         except Exception as e:
             raise ValueError('Error reading from file! ' + CM_PATH)
     else:
-        cmDict = {'SAFE_URL':'safe-url', 'UNSAFE_URL':'unsafe-url'}
+        cmDict = {'SAFE_VIDEO_URL':'safe-video-url', 'SAFE_METADATA_URL':'safe-metadata-url',
+                   'UNSAFE_VIDEO_URL':'unsafe-video-url', 'UNSAFE_METADATA_URL':'unsafe-metadata-url'}
         return(cmDict)
     cmDict = cmReturn.get('data', [])
     logger.info(f'cmReturn = ', cmReturn)

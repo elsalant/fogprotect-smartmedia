@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: moduleconfig
+data:
+  moduleconfig.yaml:  |  
+      {SAFE_VIDEO_URL:safe-video-url,
+      SAFE_METADATA_URL:safe-metadata-url,
+      UNSAFE_VIDEO_URL:unsafe-video-url,
+      UNSAFE_METADATA_URL:unsafe-metadata-url} 
+    

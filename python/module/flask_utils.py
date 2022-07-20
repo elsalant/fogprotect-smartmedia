@@ -20,9 +20,11 @@ FIXED_SCHEMA_ORG = 'realm_access.organization'
 OPA_BLOCK_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/katalog/example/blockList'
 OPA_FILTER_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/katalog/example/filters'
 
-CM_PATH = '/etc/conf/conf.yaml'  #k8s mount
+CM_PATH = '/etc/confmod/moduleconfig.yaml'  #k8s mount of configmap for general configuration parameters
+CM_SITUATION_PATH = '/etc/conf/situationstatus.yaml'
 
-TESTING=True
+TESTING=False
+TESTING_SITUATION_STATUS = 'safe'
 
 app = Flask(__name__)
 
@@ -37,7 +39,8 @@ def readConfig(CM_PATH):
         cmDict = {'MSG_TOPIC': 'sm', 'HEIR_KAFKA_HOST': 'kafka.fybrik-system:9092', 'VAULT_SECRET_PATH': None,
                   'SECRET_NSPACE': 'fybrik-system', 'SECRET_FNAME': 'credentials-els',
                   'S3_URL': 'http://s3.eu.cloud-object-storage.appdomain.cloud', 'SUBMITTER': 'EliotSalant',
-                  'SAFE_URL':'http://localhost/safe-URL/', 'UNSAFE_URL':'http://localhost/unsafe-URL/'}
+                  'SAFE_METADATA_URL':'http://localhost/safe-metadata-URL/', 'SAFE_VIDEO_URL':'http://localhost/safe-video-URL/',
+                  'UNSAFE_METADATA_URL':'http://localhost/unsafe-metadata-video-URL/', 'UNSAFE_VIDEO_URL':'http://localhost/unsafe-video-URL/'}
         return(cmDict)
     cmDict = cmReturn.get('data', [])
     logging.info(f'cmReturn = ', cmReturn)
@@ -90,18 +93,28 @@ def getAll(queryString=None):
         filterDict = composeAndExecuteOPACurl(role, OPA_FILTER_URL, queryString)   # queryString not needed here
         logging.debug('filterDict = ' + str(filterDict))
 
-    # Go out to the destination URL based on the situation statue
-    safeURLName = cmDict['SAFE_URL']
-    unsafeURLName = cmDict['UNSAFE_URL']
+    # Go out to the destination URL based on the situation state
+    # Assuming URL ends either in 'video' or 'metadata'
+    splitRequest = request.url.split('/')
+    resourceType = splitRequest[-1].lower()
+
+    if resourceType == 'video':
+        safeURLName = cmDict['SAFE_VIDEO_URL']
+        unsafeURLName = cmDict['UNSAFE_VIDEO_URL']
+    elif resourceType == 'metadata':
+        safeURLName = cmDict['SAFE_VIDEO_URL']
+        unsafeURLName = cmDict['UNSAFE_VIDEO_URL']
+    elif resourceType == 'liveness':   # used for Kubernetes/Helm liveness testing
+        return("I'm alive", VALID_RETURN)
+    else:
+        raise Exception('URL needs to end in "video" or "metadata" - not in '+resourceType)
 
     logging.info(' safeURLName = ' + str(safeURLName) + ' unsafeURLName = ' + str(unsafeURLName))
 
     # The environment variable, SITUATION_STATUS, is created from a config map and can be externally changed.
     # The value of this env determines to which URL to write to
-    situationStatus = os.getenv('SITUATION_STATUS')
-    if TESTING:
-        situationStatus = 'safe'
-    assert (situationStatus)
+    situationStatus = getSituationStatus()
+    logging.debug('situationStatus = ' + situationStatus)
     if situationStatus.lower() == 'safe':
         destinationURL = safeURLName
     elif situationStatus.lower() == 'unsafe':
@@ -109,8 +122,10 @@ def getAll(queryString=None):
     else:
         raise Exception('situationStatus = ' + situationStatus)
 
-    logging.debug("queryGatewayURL= ", destinationURL, "request.method = " + request.method)
+    logging.debug("destinationURL= ", destinationURL, "request.method = " + request.method)
+    returnHeaders = ''
     ans, returnHeaders = handleQuery(destinationURL, queryString, request.headers, request.method, request.form, request.args)
+
     if (ans is None):
         return ("No results returned", VALID_RETURN)
 
@@ -164,6 +179,21 @@ def getAll(queryString=None):
         filteredLine += json.dumps(jsonDict)
         logging.debug("filteredLine", filteredLine)
     return (filteredLine, VALID_RETURN)
+
+def getSituationStatus():
+    if not TESTING:
+        try:
+            with open(CM_SITUATION_PATH, 'r') as stream:
+                cmReturn = yaml.safe_load(stream)
+                cmDict = cmReturn.get('data', [])
+                situationStatus = cmDict['situation-status']
+        except Exception as e:
+            errorStr = 'Error reading from file! ' + CM_SITUATION_PATH
+            raise ValueError(errorStr)
+    else:
+        situationStatus = TESTING_SITUATION_STATUS
+
+    return(situationStatus)
 
 def decryptJWT(encryptedToken, flatKey):
 # String with "Bearer <token>".  Strip out "Bearer"...

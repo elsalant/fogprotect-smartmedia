@@ -4,11 +4,6 @@ export DOCKER_PASSWORD ?= XXXXXXXXXXXx
 export DOCKER_NAMESPACE ?= salant
 export DOCKER_TAGNAME ?= v1
 
-export HELM_TAGNAME ?= 0.0.1
-export HELM_TOKEN ?= $(DOCKER_PASSWORD)
-export HELM_USERNAME ?= elsalant
-export HELM_HOSTNAME ?= ghcr.io
-
 export REPO_HOSTNAME ?= ghcr.io
 export REPO_USERNAME ?= elsalant
 
@@ -20,6 +15,16 @@ DOCKER_LOCATION ?= build
 APP_IMG ?= ${REPO_HOSTNAME}/${REPO_USERNAME}/${DOCKER_IMG_NAME}:${DOCKER_TAGNAME}
 CHART_IMG ?= ${REPO_HOSTNAME}/${REPO_USERNAME}/${CHART_IMG_NAME}:${HELM_TAGNAME}
 CHART ?= ${DOCKER_IMG_NAME}
+
+export HELM_TAGNAME ?= 0.0.1
+export HELM_TOKEN ?= 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
+export HELM_USERNAME ?= elsalant
+export HELM_HOSTNAME ?= ghcr.io
+export HELM_INSTALL_NAME ?= smartmedia-module
+export HELM_CHART_NAME ?= smartmedia-chart
+export HELM_REPO ?= oci://ghcr.io/$(HELM_USERNAME)
+
+export KIND_CLUSTER ?= sm-read
 
 .PHONY: docker-all
 docker-all: docker-build docker-push
@@ -37,66 +42,40 @@ docker-push:
 docker-rmi:
 	docker rmi ${APP_IMG} || true
 
-HELM_VALUES ?= 
+.PHONY: push-to-kind
+push-to-kind:
+	kind load docker-image ${APP_IMG} --name $(KIND_CLUSTER)
 
 CHART := ${DOCKER_HOSTNAME}/${DOCKER_IMG_NAME}
-HELM_RELEASE ?= rel1-${DOCKER_IMG_NAME}
+TEMP := /tmp
+
+HELM_VALUES ?=
+
+HELM_RELEASE ?= ${HELM_INSTALL_NAME}
 TEMP := /tmp
 
 export HELM_EXPERIMENTAL_OCI=1
 export GODEBUG=x509ignoreCN=0
 
 .PHONY: helm-login
-helm-login: 
-ifneq (${HELM_PASSWORD},)
-	helm registry login -u "${HELM_USERNAME}" -p "${HELM_PASSWORD}" ${HELM_HOSTNAME}
-endif
-.PHONY: helm-verify
-helm-verify: 
-	helm lint ${CHART}
-	helm install ${HELM_RELEASE} ${CHART} ${HELM_VALUES}
+helm-login:
+	ifneq (${HELM_PASSWORD},)
+		helm registry login -u "${HELM_USERNAME}" -p "${HELM_PASSWORD}" ${HELM_HOSTNAME}
+	endif
 
 .PHONY: helm-uninstall
-helm-uninstall: 
+helm-uninstall:
 	helm uninstall ${HELM_RELEASE} || true
+
+.PHONY: helm-package
+helm-package:
+	helm package $(CHART_IMG_NAME) -d $(TEMP)
+
+.PHONY: helm-push
+helm-push:
+	helm push ${TEMP}/${HELM_CHART_NAME}-${HELM_TAGNAME}.tgz ${HELM_REPO}
 
 .PHONY: helm-install
-helm-install: 
-	helm install ${HELM_RELEASE} ${CHART} ${HELM_VALUES}
+helm-install:
+	helm install $(HELM_RELEASE) ${HELM_REPO}/${HELM_CHART_NAME}
 
-.PHONY: helm-chart-push
-helm-chart-push: helm-login 
-	helm chart save ${CHART} ${CHART_IMG}
-	helm chart list ${CHART_IMG}
-	helm chart push ${CHART_IMG}
-	helm chart remove ${CHART_IMG}
-	helm uninstall ${HELM_RELEASE} || true
-
-.PHONY: helm-chart-pull
-helm-chart-pull: helm-login 
-	helm chart pull ${CHART_IMG}
-	helm chart list
-
-.PHONY: helm-chart-list
-helm-chart-list: 
-	helm chart list
-
-.PHONY: helm-chart-install
-helm-chart-install: 
-	helm chart export --destination=${TEMP} ${CHART_IMG}
-	helm install ${HELM_RELEASE} ${TEMP}/${CHART} ${HELM_VALUES}
-	helm list
-
-.PHONY: helm-template
-helm-template: 
-	helm template ${HELM_RELEASE} ${CHART} ${HELM_VALUES}
-
-.PHONY: helm-debug
-helm-debug: helm
-	helm template ${HELM_RELEASE} ${CHART} ${HELM_VALUES} --debug
-
-.PHONY: helm-actions
-helm-actions:
-	helm show values ${CHART} | yq -y -r .actions
-
-.PHONY: helm-all

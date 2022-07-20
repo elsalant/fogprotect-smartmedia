@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: situationstatus
+data:
+  situationstatus.yaml: |
+    situation-status: safe
