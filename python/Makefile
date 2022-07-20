@@ -17,7 +17,7 @@ CHART_IMG ?= ${REPO_HOSTNAME}/${REPO_USERNAME}/${CHART_IMG_NAME}:${HELM_TAGNAME}
 CHART ?= ${DOCKER_IMG_NAME}
 
 export HELM_TAGNAME ?= 0.0.1
-export HELM_TOKEN ?= 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
+export HELM_TOKEN ?= $(DOCKER_PASSWORD)
 export HELM_USERNAME ?= elsalant
 export HELM_HOSTNAME ?= ghcr.io
 export HELM_INSTALL_NAME ?= smartmedia-module
