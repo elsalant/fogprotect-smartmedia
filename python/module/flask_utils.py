@@ -17,8 +17,8 @@ FLASK_PORT_NUM = 5559  # this application
 FIXED_SCHEMA_ROLE = 'realm_access.roles'
 FIXED_SCHEMA_ORG = 'realm_access.organization'
 
-OPA_BLOCK_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/katalog/example/blockList'
-OPA_FILTER_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/katalog/example/filters'
+OPA_BLOCK_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/dataapi/authz/blockList'
+OPA_FILTER_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/dataapi/authz/filters'
 
 CM_PATH = '/etc/confmod/moduleconfig.yaml'  #k8s mount of configmap for general configuration parameters
 CM_SITUATION_PATH = '/etc/conf/situationstatus.yaml'
@@ -72,7 +72,7 @@ def getAll(queryString=None):
     if (not TESTING):
     # Determine if the requester has access to this URL.  If the requested endpoint shows up in blockDict, then return 500
         blockDict = composeAndExecuteOPACurl(role, OPA_BLOCK_URL, queryString)
-        if blockDict:
+        try:
             for resultDict in blockDict['result']:
                 blockURL = resultDict['action']
                 jString = "\role\": " + role + \
@@ -89,7 +89,8 @@ def getAll(queryString=None):
         # Get the filter constraints from OPA
             filterDict = composeAndExecuteOPACurl(role, OPA_FILTER_URL, queryString)   # queryString not needed here
             logging.debug('filterDict = ' + str(filterDict))
-
+        except:
+            logging.debug('blockDict does not return a result ' + str(blockDict) + ' type = ' + str(type(blockDict)))
     # Go out to the destination URL based on the situation state
     # Assuming URL ends either in 'video' or 'metadata'
     splitRequest = request.url.split('/')

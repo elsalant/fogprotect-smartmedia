@@ -5,7 +5,7 @@ import re
 import curlify
 import logging
 
-OPA_SERVER = os.getenv("OPA_SERVER") if os.getenv("OPA_SERVER") else 'opa'
+OPA_SERVER = os.getenv("OPA_SERVER") if os.getenv("OPA_SERVER") else 'opa.fybrik-system'
 
 OPA_PORT = os.getenv("OPA_SERVICE_PORT") if os.getenv("OPA_SERVICE_PORT") else 8181
 OPA_FILTER_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/dataapi/authz/filters'
