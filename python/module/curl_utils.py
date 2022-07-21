@@ -5,11 +5,11 @@ import re
 import curlify
 import logging
 
-OPA_SERVER = os.getenv("OPA_SERVER") if os.getenv("OPA_SERVER") else 'localhost'
+OPA_SERVER = os.getenv("OPA_SERVER") if os.getenv("OPA_SERVER") else 'opa'
 
 OPA_PORT = os.getenv("OPA_SERVICE_PORT") if os.getenv("OPA_SERVICE_PORT") else 8181
-OPA_FILTER_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/katalog/example/filters'
-OPA_BLOCK_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/katalog/example/blockList'
+OPA_FILTER_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/dataapi/authz/filters'
+OPA_BLOCK_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/dataapi/authz/blockList'
 OPA_HEADER = {"Content-Type": "application/json"}
 ASSET_NAMESPACE = os.getenv("ASSET_NAMESPACE") if os.getenv("ASSET_NAMESPACE") else 'default'
 

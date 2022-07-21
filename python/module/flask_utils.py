@@ -42,6 +42,7 @@ def readConfig(CM_PATH):
                   'SAFE_METADATA_URL':'http://localhost/safe-metadata-URL/', 'SAFE_VIDEO_URL':'http://localhost/safe-video-URL/',
                   'UNSAFE_METADATA_URL':'http://localhost/unsafe-metadata-video-URL/', 'UNSAFE_VIDEO_URL':'http://localhost/unsafe-video-URL/'}
         return(cmDict)
+    logging.info(f'cmReturn = ', cmReturn)
     cmDict = cmReturn.get('data', [])
     logging.info(f'cmReturn = ', cmReturn)
     return(cmDict)
@@ -76,22 +77,23 @@ def getAll(queryString=None):
     if (not TESTING):
     # Determine if the requester has access to this URL.  If the requested endpoint shows up in blockDict, then return 500
         blockDict = composeAndExecuteOPACurl(role, OPA_BLOCK_URL, queryString)
-        for resultDict in blockDict['result']:
-            blockURL = resultDict['action']
-            jString = "\role\": " + role + \
-                      ", \"org\": " + organization + \
-                      ", \"URL\": " + request.url + \
-                      ", \"method\": " + request.method + \
-                      "\"Reason\": " + resultDict['name']
-            if blockURL == "BlockURL":
-                KafkaUtils.logToKafka(jString, KafkaUtils.KAFKA_DENY_TOPIC)
-                return ("Access denied!", ACCESS_DENIED_CODE)
-            else:
-                KafkaUtils.logToKafka(jString, KafkaUtils.KAFKA_ALLOW_TOPIC)
+        if blockDict:
+            for resultDict in blockDict['result']:
+                blockURL = resultDict['action']
+                jString = "\role\": " + role + \
+                          ", \"org\": " + organization + \
+                          ", \"URL\": " + request.url + \
+                          ", \"method\": " + request.method + \
+                          "\"Reason\": " + resultDict['name']
+                if blockURL == "BlockURL":
+                    KafkaUtils.logToKafka(jString, KafkaUtils.KAFKA_DENY_TOPIC)
+                    return ("Access denied!", ACCESS_DENIED_CODE)
+                else:
+                    KafkaUtils.logToKafka(jString, KafkaUtils.KAFKA_ALLOW_TOPIC)
 
-    # Get the filter constraints from OPA
-        filterDict = composeAndExecuteOPACurl(role, OPA_FILTER_URL, queryString)   # queryString not needed here
-        logging.debug('filterDict = ' + str(filterDict))
+        # Get the filter constraints from OPA
+            filterDict = composeAndExecuteOPACurl(role, OPA_FILTER_URL, queryString)   # queryString not needed here
+            logging.debug('filterDict = ' + str(filterDict))
 
     # Go out to the destination URL based on the situation state
     # Assuming URL ends either in 'video' or 'metadata'

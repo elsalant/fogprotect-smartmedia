@@ -1,7 +1,7 @@
 import pandas as pd
 import json
 
-TEST = True
+TEST = False
 VALID_RETURN = 200
 
 class PolicyUtils():
