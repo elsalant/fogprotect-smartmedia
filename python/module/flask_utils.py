@@ -36,17 +36,12 @@ def readConfig(CM_PATH):
         except Exception as e:
             raise ValueError('Error reading from file! ' + CM_PATH)
     else:
-        cmDict = {'MSG_TOPIC': 'sm', 'HEIR_KAFKA_HOST': 'kafka.fybrik-system:9092', 'VAULT_SECRET_PATH': None,
+        cmReturn = {'MSG_TOPIC': 'sm', 'HEIR_KAFKA_HOST': 'kafka.fybrik-system:9092', 'VAULT_SECRET_PATH': None,
                   'SECRET_NSPACE': 'fybrik-system', 'SECRET_FNAME': 'credentials-els',
                   'S3_URL': 'http://s3.eu.cloud-object-storage.appdomain.cloud', 'SUBMITTER': 'EliotSalant',
                   'SAFE_METADATA_URL':'http://localhost/safe-metadata-URL/', 'SAFE_VIDEO_URL':'http://localhost/safe-video-URL/',
                   'UNSAFE_METADATA_URL':'http://localhost/unsafe-metadata-video-URL/', 'UNSAFE_VIDEO_URL':'http://localhost/unsafe-video-URL/'}
-        return(cmDict)
-    logging.info(f'cmReturn = ', cmReturn)
-    cmDict = cmReturn.get('data', [])
-    logging.info(f'cmReturn = ', cmReturn)
-    return(cmDict)
-
+    return(cmReturn)
 
 # Catch anything
 @app.route('/<path:queryString>',methods=['GET', 'POST', 'PUT'])
@@ -187,8 +182,8 @@ def getSituationStatus():
         try:
             with open(CM_SITUATION_PATH, 'r') as stream:
                 cmReturn = yaml.safe_load(stream)
-                cmDict = cmReturn.get('data', [])
-                situationStatus = cmDict['situation-status']
+ #               cmDict = cmReturn.get('data', [])
+                situationStatus = cmReturn['situation-status']
         except Exception as e:
             errorStr = 'Error reading from file! ' + CM_SITUATION_PATH
             raise ValueError(errorStr)

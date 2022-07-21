@@ -34,17 +34,17 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: flask
+            - name: http
               containerPort: 5559
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /liveness
-              port: flask
+              port: http
           readinessProbe:
             httpGet:
               path: /liveness
-              port: flask
+              port: http
           volumeMounts:
             - readOnly: true
               mountPath: /etc/conf
