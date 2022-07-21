@@ -4,6 +4,7 @@ metadata:
   name: opa
   labels:
     app: opa
+  namespace: default
 spec:
   type: NodePort
   selector:

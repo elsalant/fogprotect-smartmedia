@@ -80,3 +80,9 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# OPA sidecar component
+opaSidecar:
+  # Set to true to deploy OPA sidecar or false to skip its deployment.
+  enabled: true
+
