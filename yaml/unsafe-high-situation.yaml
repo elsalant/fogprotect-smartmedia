@@ -3,4 +3,5 @@ kind: ConfigMap
 metadata:
   name: situationstatus
 data:
-  situation-status: unsafe-high
+  situationstatus.yaml: |
+    situation-status: unsafe-high
