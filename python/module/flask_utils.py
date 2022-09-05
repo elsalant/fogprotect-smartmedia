@@ -23,10 +23,11 @@ OPA_FILTER_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/dat
 CM_PATH = '/etc/confmod/moduleconfig.yaml'  #k8s mount of configmap for general configuration parameters
 CM_SITUATION_PATH = '/etc/conf/situationstatus.yaml'
 
-TESTING=False
+TESTING=True
 TESTING_SITUATION_STATUS = 'safe'
 
 app = Flask(__name__)
+logger = logging.getLogger(__name__)
 
 def readConfig(CM_PATH):
     if not TESTING:
@@ -59,24 +60,24 @@ def getAll(queryString=None):
         try:
             role = decryptJWT(payloadEncrypted, roleKey)
         except:
-            logging.error("Error: no role in JWT!")
+            logger.error("Error: no role in JWT!")
             role = 'ERROR NO ROLE!'
-        organization = decryptJWT(payloadEncrypted, organizationKey)
+        organization = decryptJWT(payloadEncrypted, organizationKey)['roles']
     if (noJWT):
         role = request.headers.get('role')   # testing only
     if (role == None):
         role = 'ERROR NO ROLE!'
     if (organization == None):
         organization = 'NO ORGANIZATION'
-    logging.debug('role = ', role, " organization = ", organization)
+    logger.debug('role = ', role, " organization = ", organization)
     if (not TESTING):
     # Determine if the requester has access to this URL.  If the requested endpoint shows up in blockDict, then return 500
         blockDict = composeAndExecuteOPACurl(role, OPA_BLOCK_URL, queryString)
         try:
             for resultDict in blockDict['result']:
                 blockURL = resultDict['action']
-                jString = "\role\": " + role + \
-                          ", \"org\": " + organization + \
+                jString = "\role\": " + str(role) + \
+                          ", \"org\": " + str(organization) + \
                           ", \"URL\": " + request.url + \
                           ", \"method\": " + request.method + \
                           "\"Reason\": " + resultDict['name']
@@ -88,9 +89,9 @@ def getAll(queryString=None):
 
         # Get the filter constraints from OPA
             filterDict = composeAndExecuteOPACurl(role, OPA_FILTER_URL, queryString)   # queryString not needed here
-            logging.debug('filterDict = ' + str(filterDict))
+            logger.debug('filterDict = ' + str(filterDict))
         except:
-            logging.debug('blockDict does not return a result ' + str(blockDict) + ' type = ' + str(type(blockDict)))
+            logger.debug('blockDict does not return a result ' + str(blockDict) + ' type = ' + str(type(blockDict)))
     # Go out to the destination URL based on the situation state
     # Assuming URL ends either in 'video' or 'metadata'
     splitRequest = request.url.split('/')
@@ -107,12 +108,12 @@ def getAll(queryString=None):
     else:
         raise Exception('URL needs to end in "video" or "metadata" - not in '+resourceType)
 
-    logging.info(' safeURLName = ' + str(safeURLName) + ' unsafeURLName = ' + str(unsafeURLName))
+    logger.info(' safeURLName = ' + str(safeURLName) + ' unsafeURLName = ' + str(unsafeURLName))
 
     # The environment variable, SITUATION_STATUS, is created from a config map and can be externally changed.
     # The value of this env determines to which URL to write to
     situationStatus = getSituationStatus()
-    logging.debug('situationStatus = ' + situationStatus)
+    logger.debug('situationStatus = ' + situationStatus)
     if situationStatus.lower() == 'safe':
         destinationURL = safeURLName
     elif situationStatus.lower() == 'unsafe':
@@ -120,7 +121,7 @@ def getAll(queryString=None):
     else:
         raise Exception('situationStatus = ' + situationStatus)
 
-    logging.debug("destinationURL= ", destinationURL, "request.method = " + request.method)
+    logger.debug("destinationURL= ", destinationURL, "request.method = " + request.method)
     returnHeaders = ''
     ans, returnHeaders = handleQuery(destinationURL, queryString, request.headers, request.method, request.form, request.args)
 
@@ -135,28 +136,28 @@ def getAll(queryString=None):
         processing = False
         if (type(ans) is str):
             if (returnHeaders['Content-Type'] == 'video/mp4'):  # this check might not be necessary - type should return as bytes in this case
-                logging.debug("binary data found")
+                logger.debug("binary data found")
                 return ans, VALID_RETURN
             try:
                 jsonDict = json.loads(ans)
             except:
-               logging.debug("Non-JSON string received! ans = " + ans)
+               logger.debug("Non-JSON string received! ans = " + ans)
                return('Non-JSON string received!',ERROR_CODE)
         elif (type(ans) is dict):
                 jsonDict = ans
         elif (type(ans) is bytes):
-            logging.debug("Binary bytes received!")
+            logger.debug("Binary bytes received!")
             return ans, VALID_RETURN
         elif (type(ans) is list):
             if (type(ans[listIndex]) is not dict):
-                logging.debug("--> WARNING: list of " + str(type(ans[listIndex])) + " - not filtering")
+                logger.debug("--> WARNING: list of " + str(type(ans[listIndex])) + " - not filtering")
                 return(str(ans).replace('\'', '\"' ), VALID_RETURN)
             jsonDict = ans[listIndex]
             listIndex += 1
             if listIndex < len(ans):
                 processing = True
         else:
-            logging.debug("WARNING: Too complicated - not filtering")
+            logger.debug("WARNING: Too complicated - not filtering")
             return (json.dumps(ans), VALID_RETURN)
   #  for line in ans:
         for resultDict in filterDict['result']:
@@ -175,7 +176,7 @@ def getAll(queryString=None):
                 filterPred = resultDict['filterPredicate']
 
         filteredLine += json.dumps(jsonDict)
-        logging.debug("filteredLine", filteredLine)
+        logger.debug("filteredLine", filteredLine)
     return (filteredLine, VALID_RETURN)
 
 def getSituationStatus():
@@ -199,7 +200,7 @@ def decryptJWT(encryptedToken, flatKey):
     assert encryptedToken.startswith(prefix), '\"Bearer\" not found in token' + encryptedToken
     strippedToken = encryptedToken[len(prefix):].strip()
     decodedJWT = jwt.api_jwt.decode(strippedToken, options={"verify_signature": False})
-    logging.debug('decodedJWT = ', decodedJWT)
+    logger.debug('decodedJWT = ', decodedJWT)
  #   flatKey = os.getenv("SCHEMA_ROLE") if os.getenv("SCHEMA_ROLE") else FIXED_SCHEMA_ROLE
 # We might have an nested key in JWT (dict within dict).  In that case, flatKey will express the hierarchy and so we
 # will interatively chunk through it.
@@ -210,7 +211,7 @@ def decryptJWT(encryptedToken, flatKey):
                 decodedJWT = decodedJWT[s]
                 decodedKey = decodedJWT
             else:
-                logging.debug("warning: " + s + " not found in decodedKey!")
+                logger.debug("warning: " + s + " not found in decodedKey!")
                 return decodedKey
     return decodedKey
 
@@ -218,7 +219,7 @@ def recurse(jDict, keySearch, action):
     try:
         i = keySearch.pop(0)
     except:
-        logging.debug("Error on keySearch.pop, keySearch = " + str(keySearch))
+        logger.debug("Error on keySearch.pop, keySearch = " + str(keySearch))
         return(jDict)
     while i in jDict:
         last = jDict[i]
