@@ -6,6 +6,7 @@ Note:  The OPA policy is automatically loaded from the configmap by the deployme
        OPA is brought up automatically by the files in the templates directory
 To run:
 1. Install the configmaps in the yaml directory (moduleConfig.yaml, policy.yaml, and either safe-situation.yaml or unsafe-high-situation)
+1. Install the yaml to externalize the ingress gateway: sm-smartmedia-ingress.yaml
 1. helm install sm oci://ghcr.io/elsalant/smartmedia-chart
 
 To test:

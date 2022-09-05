@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: letsencrypt-cert
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  name: sm-smartmedia-nip
+  namespace: default
+spec:
+  tls:
+  - hosts:
+    - sm-smartmedia-fog.3-142-117-27.nip.io
+    secretName: sm-smartmedia-le
+  rules:
+  - host: sm-smartmedia-fog.3-142-117-27.nip.io
+    http:
+      paths:
+#        - path: /
+         - backend:
+            serviceName: sm-smartmedia-chart
+            servicePort: 5559
+
