@@ -7,7 +7,7 @@ ACCESS_DENIED_CODE = 403
 ERROR_CODE = 406
 VALID_RETURN = 200
 
-TEST = True   # allows testing outside of Fybrik/Kubernetes environment
+TEST = False   # allows testing outside of Fybrik/Kubernetes environment
 
 FIXED_SCHEMA_ROLE = 'missing role'
 FIXED_SCHEMA_ORG  = 'missing org'

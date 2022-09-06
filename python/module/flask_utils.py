@@ -16,18 +16,26 @@ FLASK_PORT_NUM = 5559  # this application
 
 FIXED_SCHEMA_ROLE = 'realm_access.roles'
 FIXED_SCHEMA_ORG = 'realm_access.organization'
+FIXED_SCHEMA_USER = 'name'
 
 OPA_BLOCK_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/dataapi/authz/blockList'
 OPA_FILTER_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/dataapi/authz/filters'
 
+KAFKA_DENY_TOPIC = os.getenv("KAFKA_DENY_TOPIC") if os.getenv("KAFKA_TOPIC") else "blocked-access"
+KAFKA_ALLOW_TOPIC = os.getenv("KAFKA_ALLOW_TOPIC") if os.getenv("KAFKA_TOPIC") else "granted-access"
+
 CM_PATH = '/etc/confmod/moduleconfig.yaml'  #k8s mount of configmap for general configuration parameters
 CM_SITUATION_PATH = '/etc/conf/situationstatus.yaml'
 
-TESTING=True
+TESTING=False
 TESTING_SITUATION_STATUS = 'safe'
 
 app = Flask(__name__)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('flask_utils.py')
+logger.setLevel(logging.DEBUG)
+logger.info('setting log level to DEBUG')
+
+kafkaUtils = KafkaUtils()
 
 def readConfig(CM_PATH):
     if not TESTING:
@@ -47,51 +55,84 @@ def readConfig(CM_PATH):
 # Catch anything
 @app.route('/<path:queryString>',methods=['GET', 'POST', 'PUT'])
 def getAll(queryString=None):
+    # Ignore liveness requests
+    splitRequest = request.url.split('/')
+    resourceType = splitRequest[-1].lower()
+    if resourceType == 'liveness':   # used for Kubernetes/Helm liveness testing
+        return("I'm alive", VALID_RETURN)
     cmDict = readConfig(CM_PATH)
 # Support JWT token for OAuth 2.1
     noJWT = True
+    logger.debug('-->request.headers.keys()')
+    for s in request.headers.keys():
+        print(s)
     payloadEncrypted = request.headers.get('Authorization')
-    organization = None
-    role = None
+    organization = 'Not defined'
+    role = 'Not defined'
+    user = 'Not defined'
+    if (payloadEncrypted == None):
+        logger.debug("----> payloadEncrypted = None !!")
     if (payloadEncrypted != None):
+        logger.debug('inside payloadEncrypted != None')
         noJWT = False
         roleKey = os.getenv("SCHEMA_ROLE") if os.getenv("SCHEMA_ROLE") else FIXED_SCHEMA_ROLE
-        organizationKey = os.getenv("SCHEMA_ORG") if os.getenv("SCHEMA_ORG") else FIXED_SCHEMA_ORG
         try:
             role = decryptJWT(payloadEncrypted, roleKey)
         except:
             logger.error("Error: no role in JWT!")
             role = 'ERROR NO ROLE!'
-        organization = decryptJWT(payloadEncrypted, organizationKey)['roles']
+        userKey = os.getenv("SCHEMA_USER") if os.getenv("SCHEMA_USER") else FIXED_SCHEMA_USER
+        try:
+            user = decryptJWT(payloadEncrypted, userKey)
+        except:
+            logger.error("Error: no user in JWT!")
+            user = 'ERROR NO USER!'
+        organizationKey = os.getenv("SCHEMA_ORG") if os.getenv("SCHEMA_ORG") else FIXED_SCHEMA_ORG
+        try:
+            organization = decryptJWT(payloadEncrypted, organizationKey)
+        except:
+            logger.error("Error: no organization in JWT!")
+            organization = 'ERROR NO organization!'
     if (noJWT):
         role = request.headers.get('role')   # testing only
     if (role == None):
         role = 'ERROR NO ROLE!'
     if (organization == None):
         organization = 'NO ORGANIZATION'
-    logger.debug('role = ', role, " organization = ", organization)
+    logger.debug('role = ' + str(role) + " organization = " + str(organization) + " user = " + str(user))
     if (not TESTING):
     # Determine if the requester has access to this URL.  If the requested endpoint shows up in blockDict, then return 500
         blockDict = composeAndExecuteOPACurl(role, OPA_BLOCK_URL, queryString)
+        logger.info('blockDict = ' + str(blockDict))
         try:
             for resultDict in blockDict['result']:
                 blockURL = resultDict['action']
-                jString = "\role\": " + str(role) + \
+                jString = \
+                          "\"user\": " + str(user) + \
+                          ", \"role\": " + str(role) + \
                           ", \"org\": " + str(organization) + \
                           ", \"URL\": " + request.url + \
                           ", \"method\": " + request.method + \
                           "\"Reason\": " + resultDict['name']
                 if blockURL == "BlockURL":
-                    KafkaUtils.logToKafka(jString, KafkaUtils.KAFKA_DENY_TOPIC)
+                    kafkaUtils.writeToKafka(jString, KAFKA_DENY_TOPIC)
                     return ("Access denied!", ACCESS_DENIED_CODE)
                 else:
-                    KafkaUtils.logToKafka(jString, KafkaUtils.KAFKA_ALLOW_TOPIC)
+                    kafkaUtils.writeToKafka(jString, KAFKA_ALLOW_TOPIC)
 
         # Get the filter constraints from OPA
             filterDict = composeAndExecuteOPACurl(role, OPA_FILTER_URL, queryString)   # queryString not needed here
             logger.debug('filterDict = ' + str(filterDict))
         except:
             logger.debug('blockDict does not return a result ' + str(blockDict) + ' type = ' + str(type(blockDict)))
+            jString = \
+                "\"user\": " + str(user) + \
+                "\role\": " + str(role) + \
+                ", \"org\": " + str(organization) + \
+                ", \"URL\": " + request.url + \
+                ", \"method\": " + request.method + \
+                ", \"Reason\": " + 'No rules found'
+            kafkaUtils.writeToKafka(jString, KAFKA_ALLOW_TOPIC)
     # Go out to the destination URL based on the situation state
     # Assuming URL ends either in 'video' or 'metadata'
     splitRequest = request.url.split('/')
@@ -196,11 +237,14 @@ def getSituationStatus():
 
 def decryptJWT(encryptedToken, flatKey):
 # String with "Bearer <token>".  Strip out "Bearer"...
+    logger.info('Inside decryptJWT')
     prefix = 'Bearer'
     assert encryptedToken.startswith(prefix), '\"Bearer\" not found in token' + encryptedToken
     strippedToken = encryptedToken[len(prefix):].strip()
-    decodedJWT = jwt.api_jwt.decode(strippedToken, options={"verify_signature": False})
-    logger.debug('decodedJWT = ', decodedJWT)
+ #   decodedJWT = jwt.api_jwt.decode(strippedToken, options={"verify_signature": False})
+    decodedJWT = jwt.decode(strippedToken, options={"verify_signature": False})
+#    logger.info(decodedJWT)
+
  #   flatKey = os.getenv("SCHEMA_ROLE") if os.getenv("SCHEMA_ROLE") else FIXED_SCHEMA_ROLE
 # We might have an nested key in JWT (dict within dict).  In that case, flatKey will express the hierarchy and so we
 # will interatively chunk through it.

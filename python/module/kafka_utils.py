@@ -5,13 +5,10 @@ from kafka import KafkaConsumer
 import logging
 TEST = False
 
-#Kafka is used for logging requests
-kafkaDisabled = False
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 KAFKA_SERVER = os.getenv("FOGPROTECT_KAFKA_SERVER") if os.getenv("FOGPROTECT_KAFKA_SERVER") else "127.0.0.1:9092"
-KAFKA_DENY_TOPIC = os.getenv("KAFKA_DENY_TOPIC") if os.getenv("KAFKA_TOPIC") else "blocked-access"
-KAFKA_ALLOW_TOPIC = os.getenv("KAFKA_ALLOW_TOPIC") if os.getenv("KAFKA_TOPIC") else "granted-access"
 DEFAULT_KAFKA_LOG_TOPIC = 'smart-media'
 
 if TEST:
@@ -20,40 +17,34 @@ else:
     DEFAULT_KAFKA_HOST = 'kafka:9092'
  #   DEFAULT_KAFKA_HOST = 'kafka.fybrik-system:9092'
 
-
 class KafkaUtils:
-    def __init__(self, logger, msgTopic):
-        self.kafkaHost = os.getenv("FOGPROTECT_self.kafkaHost") if os.getenv(
-            "FOGPROTECT_self.kafkaHost") else DEFAULT_KAFKA_HOST
-        self.kafkaLogTopic = os.getenv("SM_self.kafkaLogTopic") if os.getenv("SM_self.kafkaLogTopic") \
-            else DEFAULT_KAFKA_LOG_TOPIC
-        self.kafkaMsgTopic = os.getenv("SM_self.kafkaLogTopic") if os.getenv("SM_self.kafkaLogTopic") \
-            else msgTopic
-        self.kafkaDisabled = True
+    def __init__(self):
+        self.kafkaHost = os.getenv("FOGPROTECT_self.kafkaHost") if os.getenv("FOGPROTECT_self.kafkaHost") else DEFAULT_KAFKA_HOST
+        self.kafkaDisabled = False
         self.producer = self.connect_to_kafka_producer()
-        self.consumer = self.connect_to_kafka_consumer()
+ #       self.consumer = self.connect_to_kafka_consumer('NOTUSED')
+        logger.info('KafkaUtils initiated!')
 
-    def connect_to_kafka_consumer(self):
+    def connect_to_kafka_consumer(self, msgTopic):
         if TEST:
             return
         consumer = None
         try:
             consumer = KafkaConsumer(
-                self.kafkaMsgTopic,
+                msgTopic,
                 bootstrap_servers=[self.kafkaHost],
                 group_id='els',
                 auto_offset_reset='earliest',  # lastest
                 enable_auto_commit=True,
                 value_deserializer=lambda x: loads(x.decode('utf-8')))
         except:
-            raise Exception("Kafka did not connect for host " + self.kafkaHost + " and  topic " + self.kafkaMsgTopic)
-
+            logger.info("Kafka did not connect for host " + self.kafkaHost + " and  topic " + msgTopic)
+            self.kafkaDisabled = True
         logger.info(
-            f"Connection to kafka at host " + self.kafkaHost + " and  topic " + self.kafkaMsgTopic + " succeeded!")
+            f"Connection to kafka at host " + self.kafkaHost + " and  topic " + msgTopic + " succeeded!")
         return consumer
 
     def connect_to_kafka_producer(self):
-        global kafkaDisabled
         try:
             producer = KafkaProducer(
                 bootstrap_servers=[self.kafkaHost],
@@ -69,16 +60,17 @@ class KafkaUtils:
         logger.info(f"Connection to Kafka succeeded! " + self.kafkaHost)
         return (producer)
 
-    def writeToKafka(self, jString):
+    def writeToKafka(self, jString, logTopic):
+        logger.info('getting ready to write to Kafka: ' + jString)
         if self.kafkaDisabled:
-            logger.info(f"Kafka topic: " + self.kafkaLogTopic + " log string: " + jString)
+            logger.info(f"Kafka topic: " + logTopic + " log string: " + jString)
             logger.warning(f"But kafka is disabled...")
             return None
         jSONoutBytes = str.encode(jString)
         try:
-            logger.info(f"Writing to Kafka queue " + self.kafkaLogTopic + ": " + jString)
-            self.producer.send(self.kafkaLogTopic, value=jSONoutBytes)  # to the SIEM
+            logger.info(f"Writing to Kafka queue " + logTopic + ": " + jString)
+            self.producer.send(logTopic, value=jSONoutBytes)
         except Exception as e:
-            logger.warning(f"Write to Kafka logging failed.  Is the server on " + self.kafkaLogTopic + " running?")
+            logger.warning(f"Write to Kafka logging failed.  Is the server on " + logTopic + " running?")
             logger.info(e)
         return None

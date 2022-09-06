@@ -4,8 +4,8 @@ metadata:
   name: moduleconfig
 data:
    moduleconfig.yaml:  |
-          SAFE_VIDEO_URL: 'safe-video-url/'
-          SAFE_METADATA_URL: 'safe-metadata-url/'
-          UNSAFE_VIDEO_URL: 'unsafe-video-url/'
-          UNSAFE_METADATA_URL: 'unsafe-metadata-url/'
+          SAFE_VIDEO_URL: 'http://safe-video-url/'
+          SAFE_METADATA_URL: 'http://safe-metadata-url/'
+          UNSAFE_VIDEO_URL: 'http://unsafe-video-url/'
+          UNSAFE_METADATA_URL: 'http://unsafe-metadata-url/'
     
