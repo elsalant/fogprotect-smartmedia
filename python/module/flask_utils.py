@@ -70,7 +70,6 @@ def getAll(queryString=None):
     if (payloadEncrypted == None):
         logger.debug("----> payloadEncrypted = None !!")
     if (payloadEncrypted != None):
-        logger.debug('inside payloadEncrypted != None')
         noJWT = False
         roleKey = os.getenv("SCHEMA_ROLE") if os.getenv("SCHEMA_ROLE") else FIXED_SCHEMA_ROLE
         try:
@@ -89,7 +88,7 @@ def getAll(queryString=None):
             organization = decryptJWT(payloadEncrypted, organizationKey)
         except:
             logger.error("Error: no organization in JWT!")
-            organization = 'ERROR NO organization!'
+            organization = 'ERROR NO organizationKey!'
     if (noJWT):
         role = request.headers.get('role')   # testing only
     if (role == None):
@@ -105,12 +104,12 @@ def getAll(queryString=None):
             for resultDict in blockDict['result']:
                 blockURL = resultDict['action']
                 jString = \
-                          "\"user\": " + str(user) + \
-                          ", \"role\": " + str(role) + \
-                          ", \"org\": " + str(organization) + \
-                          ", \"URL\": " + request.url + \
-                          ", \"method\": " + request.method + \
-                          "\"Reason\": " + resultDict['name']
+                          "{\"user\": \"" + str(user) + + "\"" \
+                          ", \"role\": \"" + str(role) + "\"" + \
+                          ", \"org\": \"" + str(organization) + "\"" + \
+                          ", \"URL\": \"" + request.url + "\"" + \
+                          ", \"method\": \"" + request.method + "\"" + \
+                          "\"Reason\": \"" + resultDict['name'] + "\"}"
                 if blockURL == "BlockURL":
                     kafkaUtils.writeToKafka(jString, KAFKA_DENY_TOPIC)
                     return ("Access denied!", ACCESS_DENIED_CODE)
@@ -123,12 +122,12 @@ def getAll(queryString=None):
         except:
             logger.debug('blockDict does not return a result ' + str(blockDict) + ' type = ' + str(type(blockDict)))
             jString = \
-                "\"user\": " + str(user) + \
-                "\role\": " + str(role) + \
-                ", \"org\": " + str(organization) + \
-                ", \"URL\": " + request.url + \
-                ", \"method\": " + request.method + \
-                ", \"Reason\": " + 'No rules found'
+                "{\"user\": \"" + str(user) + "\"" + \
+                ", \"role\": \"" + str(role) + "\"" + \
+                ", \"org\": \"" + str(organization) + "\"" + \
+                ", \"URL\": \"" + request.url + "\"" + \
+                ", \"method\": \"" + request.method + "\"" + \
+                ", \"Reason\": " + '"No rules found"}'
             kafkaUtils.writeToKafka(jString, KAFKA_ALLOW_TOPIC)
     # Go out to the destination URL based on the situation state
     # Assuming URL ends either in 'video' or 'metadata'
@@ -253,7 +252,7 @@ def decryptJWT(encryptedToken, flatKey):
                 decodedKey = decodedJWT
             else:
                 logger.debug("warning: " + s + " not found in decodedKey!")
-                return decodedKey
+                return None
     return decodedKey
 
 def recurse(jDict, keySearch, action):
