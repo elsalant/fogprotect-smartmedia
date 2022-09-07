@@ -4,24 +4,22 @@ from kafka import KafkaProducer
 from kafka import KafkaConsumer
 import logging
 TEST = False
+kafka_already_connected = False
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-KAFKA_SERVER = os.getenv("FOGPROTECT_KAFKA_SERVER") if os.getenv("FOGPROTECT_KAFKA_SERVER") else "127.0.0.1:9092"
-DEFAULT_KAFKA_LOG_TOPIC = 'smart-media'
-
+KAFKA_SERVER = os.getenv("FOGPROTECT_KAFKA_SERVER") if os.getenv("FOGPROTECT_KAFKA_SERVER") else "172.31.35.158:9092"
 if TEST:
-    DEFAULT_KAFKA_HOST = 'localhost:9092'
-else:
-    DEFAULT_KAFKA_HOST = 'kafka:9092'
- #   DEFAULT_KAFKA_HOST = 'kafka.fybrik-system:9092'
+    KAFKA_SERVER = 'localhost:9092'
+DEFAULT_KAFKA_LOG_TOPIC = 'smart-media'
 
 class KafkaUtils:
     def __init__(self):
-        self.kafkaHost = os.getenv("FOGPROTECT_self.kafkaHost") if os.getenv("FOGPROTECT_self.kafkaHost") else DEFAULT_KAFKA_HOST
+        self.kafkaHost = os.getenv("FOGPROTECT_self.kafkaHost") if os.getenv("FOGPROTECT_self.kafkaHost") else KAFKA_SERVER
         self.kafkaDisabled = False
-        self.producer = self.connect_to_kafka_producer()
+        self.producer = None
+#        self.producer = self.connect_to_kafka_producer()
  #       self.consumer = self.connect_to_kafka_consumer('NOTUSED')
         logger.info('KafkaUtils initiated!')
 
@@ -45,23 +43,27 @@ class KafkaUtils:
         return consumer
 
     def connect_to_kafka_producer(self):
+        global kafka_already_connected
         try:
             producer = KafkaProducer(
                 bootstrap_servers=[self.kafkaHost],
-                request_timeout_ms=2000
+                request_timeout_ms=10000
             )  # , value_serializer=lambda x:json.dumps(x).encode('utf-8'))
+            kafka_already_connected = True
         except Exception as e:
             logger.warning(
-                f"\n--->WARNING: Connection to Kafka failed.  Is the server on " + self.kafkaHost + " running?")
+                f"\n--->WARNING: Connection to Kafka failed for producer.  Is the server on " + self.kafkaHost + " running?")
             logger.warning(e)
             self.kafkaDisabled = True
             return None
         self.kafkaDisabled = False
         logger.info(f"Connection to Kafka succeeded! " + self.kafkaHost)
+        self.producer = producer
         return (producer)
 
     def writeToKafka(self, jString, logTopic):
-        logger.info('getting ready to write to Kafka: ' + jString)
+        if not kafka_already_connected and not self.kafkaDisabled:
+            producer = self.connect_to_kafka_producer()
         if self.kafkaDisabled:
             logger.info(f"Kafka topic: " + logTopic + " log string: " + jString)
             logger.warning(f"But kafka is disabled...")
@@ -69,7 +71,7 @@ class KafkaUtils:
         jSONoutBytes = str.encode(jString)
         try:
             logger.info(f"Writing to Kafka queue " + logTopic + ": " + jString)
-            self.producer.send(logTopic, value=jSONoutBytes)
+            producer.send(logTopic, value=jSONoutBytes)
         except Exception as e:
             logger.warning(f"Write to Kafka logging failed.  Is the server on " + logTopic + " running?")
             logger.info(e)

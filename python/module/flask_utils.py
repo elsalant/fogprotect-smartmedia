@@ -63,9 +63,6 @@ def getAll(queryString=None):
     cmDict = readConfig(CM_PATH)
 # Support JWT token for OAuth 2.1
     noJWT = True
-    logger.debug('-->request.headers.keys()')
-    for s in request.headers.keys():
-        print(s)
     payloadEncrypted = request.headers.get('Authorization')
     organization = 'Not defined'
     role = 'Not defined'
