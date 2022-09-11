@@ -31,6 +31,17 @@ spec:
         - readOnly: true
           mountPath: /policies
           name: policy-smartmedia
+      - name: kube-mgmt
+        securityContext: {}
+        args:
+          - --require-policy-label
+          - --policies={{ .Release.Namespace }}
+          - --replicate=katalog.fybrik.io/v1alpha1/assets
+        image: openpolicyagent/kube-mgmt:0.11
+        imagePullPolicy: IfNotPresent
+        resources: { }
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
       volumes:
       - name: policy-smartmedia
         configMap:
