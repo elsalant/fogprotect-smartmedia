@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: opa
-        image: openpolicyagent/opa:edge
+        image: openpolicyagent/opa:latest
         ports:
         - name: http
           containerPort: 8181
@@ -30,9 +30,9 @@ spec:
         volumeMounts:
         - readOnly: true
           mountPath: /policies
-          name: example-policy
+          name: policy-smartmedia
       volumes:
-      - name: example-policy
+      - name: policy-smartmedia
         configMap:
-          name: example-policy
+          name: policy-smartmedia
 

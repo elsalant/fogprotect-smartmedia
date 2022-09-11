@@ -85,4 +85,5 @@ affinity: {}
 opaSidecar:
   # Set to true to deploy OPA sidecar or false to skip its deployment.
   enabled: true
-
+persistence:
+  enabled: false 
