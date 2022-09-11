@@ -37,14 +37,14 @@ spec:
             - name: http
               containerPort: 5559
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /liveness
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /liveness
-              port: http
+#          livenessProbe:
+#            httpGet:
+#              path: /liveness
+#              port: http
+#          readinessProbe:
+#            httpGet:
+#              path: /liveness
+#              port: http
           volumeMounts:
             - readOnly: true
               mountPath: /etc/conf
