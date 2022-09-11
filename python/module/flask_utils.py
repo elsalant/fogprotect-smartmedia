@@ -15,11 +15,8 @@ VALID_RETURN = 200
 FLASK_PORT_NUM = 5559  # this application
 
 FIXED_SCHEMA_ROLE = 'realm_access.roles'
-FIXED_SCHEMA_ORG = 'realm_access.organization'
+FIXED_SCHEMA_ORG = 'organization'
 FIXED_SCHEMA_USER = 'name'
-
-OPA_BLOCK_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/dataapi/authz/blockList'
-OPA_FILTER_URL = os.getenv("OPA_URL") if os.getenv("OPA_URL") else '/v1/data/dataapi/authz/filters'
 
 KAFKA_DENY_TOPIC = os.getenv("KAFKA_DENY_TOPIC") if os.getenv("KAFKA_TOPIC") else "blocked-access"
 KAFKA_ALLOW_TOPIC = os.getenv("KAFKA_ALLOW_TOPIC") if os.getenv("KAFKA_TOPIC") else "granted-access"
@@ -74,6 +71,11 @@ def getAll(queryString=None):
         roleKey = os.getenv("SCHEMA_ROLE") if os.getenv("SCHEMA_ROLE") else FIXED_SCHEMA_ROLE
         try:
             role = decryptJWT(payloadEncrypted, roleKey)
+            # Role will be returned as a list.  To make life simple in the policy, assume that only
+            # first element is the real role.  Maybe fix this one day...
+            if type(role) is list:
+                logger.info('role was a list of len: '+ str(len(role)))
+                role = role[0]
         except:
             logger.error("Error: no role in JWT!")
             role = 'ERROR NO ROLE!'
@@ -96,31 +98,32 @@ def getAll(queryString=None):
     if (organization == None):
         organization = 'NO ORGANIZATION'
     logger.debug('role = ' + str(role) + " organization = " + str(organization) + " user = " + str(user))
+    # The environment variable, SITUATION_STATUS, is created from a config map and can be externally changed.
+    # The value of this env determines to which URL to write to
+    situationStatus = getSituationStatus()
+    logger.debug('situationStatus = ' + situationStatus)
     if (not TESTING):
-    # Determine if the requester has access to this URL.  If the requested endpoint shows up in blockDict, then return 500
-        blockDict = composeAndExecuteOPACurl(role, OPA_BLOCK_URL, queryString)
-        logger.info('blockDict = ' + str(blockDict))
+    # Determine if the requester has access to this URL.  If the requested endpoint shows up in opaDict, then return 500
+        opaDict = composeAndExecuteOPACurl(role, queryString, request.method, situationStatus)
+        logger.info('After call to OPA, opaDict = ' + str(opaDict))
         try:
-            for resultDict in blockDict['result']:
+            for resultDict in opaDict['result']:
                 blockURL = resultDict['action']
                 jString = \
-                          "{\"user\": \"" + str(user) + + "\"" \
+                          "{\"user\": \"" + str(user) +  "\"" \
                           ", \"role\": \"" + str(role) + "\"" + \
                           ", \"org\": \"" + str(organization) + "\"" + \
                           ", \"URL\": \"" + request.url + "\"" + \
                           ", \"method\": \"" + request.method + "\"" + \
-                          "\"Reason\": \"" + resultDict['name'] + "\"}"
+                          ", \"Reason\": \"" + resultDict['name'] + "\"}"
                 if blockURL == "BlockURL":
                     kafkaUtils.writeToKafka(jString, KAFKA_DENY_TOPIC)
                     return ("Access denied!", ACCESS_DENIED_CODE)
                 else:
                     kafkaUtils.writeToKafka(jString, KAFKA_ALLOW_TOPIC)
-
-        # Get the filter constraints from OPA
-            filterDict = composeAndExecuteOPACurl(role, OPA_FILTER_URL, queryString)   # queryString not needed here
-            logger.debug('filterDict = ' + str(filterDict))
-        except:
-            logger.debug('blockDict does not return a result ' + str(blockDict) + ' type = ' + str(type(blockDict)))
+        except Exception as e:
+            logger.debug('OOps - opaDict does not return a result ' + str(opaDict))
+            print(e)
             jString = \
                 "{\"user\": \"" + str(user) + "\"" + \
                 ", \"role\": \"" + str(role) + "\"" + \
@@ -147,16 +150,15 @@ def getAll(queryString=None):
 
     logger.info(' safeURLName = ' + str(safeURLName) + ' unsafeURLName = ' + str(unsafeURLName))
 
-    # The environment variable, SITUATION_STATUS, is created from a config map and can be externally changed.
-    # The value of this env determines to which URL to write to
-    situationStatus = getSituationStatus()
-    logger.debug('situationStatus = ' + situationStatus)
-    if situationStatus.lower() == 'safe':
-        destinationURL = safeURLName
-    elif situationStatus.lower() == 'unsafe':
-        destinationURL = unsafeURLName
-    else:
-        raise Exception('situationStatus = ' + situationStatus)
+    if request.method == 'GET':
+        destinationURL = request.url  # FIX THIS TO ADD DESTINATION FOR GET
+    else:  # Redirect on write operations
+        if situationStatus.lower() == 'safe':
+            destinationURL = safeURLName
+        elif 'unsafe' in situationStatus.lower():
+            destinationURL = unsafeURLName
+        else:
+            raise Exception('situationStatus = ' + situationStatus)
 
     logger.debug("destinationURL= ", destinationURL, "request.method = " + request.method)
     returnHeaders = ''
@@ -197,7 +199,7 @@ def getAll(queryString=None):
             logger.debug("WARNING: Too complicated - not filtering")
             return (json.dumps(ans), VALID_RETURN)
   #  for line in ans:
-        for resultDict in filterDict['result']:
+        for resultDict in opaDict['result']:
             action = resultDict['action']
             # Handle the filtering here
             if (action == 'Deny'):
@@ -233,7 +235,6 @@ def getSituationStatus():
 
 def decryptJWT(encryptedToken, flatKey):
 # String with "Bearer <token>".  Strip out "Bearer"...
-    logger.info('Inside decryptJWT')
     prefix = 'Bearer'
     assert encryptedToken.startswith(prefix), '\"Bearer\" not found in token' + encryptedToken
     strippedToken = encryptedToken[len(prefix):].strip()

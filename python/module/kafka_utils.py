@@ -71,7 +71,7 @@ class KafkaUtils:
         jSONoutBytes = str.encode(jString)
         try:
             logger.info(f"Writing to Kafka queue " + logTopic + ": " + jString)
-            producer.send(logTopic, value=jSONoutBytes)
+            self.producer.send(logTopic, value=jSONoutBytes)
         except Exception as e:
             logger.warning(f"Write to Kafka logging failed.  Is the server on " + logTopic + " running?")
             logger.info(e)
