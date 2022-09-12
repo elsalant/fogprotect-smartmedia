@@ -5,9 +5,12 @@ The use case determines based on a situationstatus value (set through a configma
 Note:  The OPA policy is automatically loaded from the configmap by the deployment-opa file
        OPA is brought up automatically by the files in the templates directory
 To run:
-1. Install the configmaps in the yaml directory (moduleConfig.yaml, policy.yaml, and either safe-situation.yaml or unsafe-high-situation)
-1. Install the yaml to externalize the ingress gateway: sm-smartmedia-ingress.yaml
-1. helm install sm oci://ghcr.io/elsalant/smartmedia-chart
+1. Install the configmaps in the yaml directory (moduleConfig.yaml and either safe-situation.yaml or unsafe-high-situation)
+2. Install the yaml to externalize the ingress gateway: sm-smartmedia-ingress.yaml
+3. helm install sm oci://ghcr.io/elsalant/smartmedia-chart
+4. kubectl get pods - get pod for opa then forward, e.g. 
+   kubectl port-forward opa-75b6c4cd69-clv62 8181
+5. scripts/curlLoadPolicy.sh
 
 To test:
 In script directory:
