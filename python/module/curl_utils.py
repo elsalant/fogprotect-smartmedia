@@ -74,9 +74,11 @@ def handleQuery(queryGatewayURL, passedHeaders, method, values, args):
     logger.debug("curlCommands: curlString = " + curlString)
     try:
         if (method == 'POST'):
-            r = requests.post(curlString, headers=passedHeaders, data=values, params=args)
+ #           r = requests.post(curlString, headers=passedHeaders, data=values, params=args)
+            r = requests.post(curlString, data=values, params=args)
         else:
-            r = requests.get(curlString, headers=passedHeaders, data=values, params=args)
+#            r = requests.get(curlString, headers=passedHeaders, data=values, params=args)
+            r = requests.get(curlString, data=values, params=args)
     except Exception as e:
         logger.debug(
             "Exception in handleQuery, curlString = " + curlString + ", method = " + method + " passedHeaders = " + str(
