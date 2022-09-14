@@ -27,7 +27,7 @@ def readConfig(CM_PATH):
             raise ValueError('Error reading from file! ' + CM_PATH)
     else:
         cmDict = {'SAFE_VIDEO_URL':'safe-video-url', 'SAFE_METADATA_URL':'safe-metadata-url',
-                   'UNSAFE_VIDEO_URL':'unsafe-video-url', 'UNSAFE_METADATA_URL':'unsafe-metadata-url'}
+                   'UNSAFE_VIDEO_URL':'unsafe-video-url', 'UNSAFE_METADATA_URL':'unsafe-metadata-url', 'BASE_URL':'chatterbox-be.chatterbox.svc.cluster.local:4000'}
         return(cmDict)
     cmDict = cmReturn.get('data', [])
     logger.info(f'cmReturn = ', cmReturn)

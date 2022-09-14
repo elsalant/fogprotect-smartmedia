@@ -91,7 +91,7 @@ def handleQuery(queryGatewayURL, queryString, passedHeaders, method, values, arg
                 passedHeaders) + " values = " + str(values))
         raise ConnectionError('Error connecting ')
     logger.debug("curl request = " + curlify.to_curl(r.request))
-    return (r.status_code)
+    return (r.content, r.status_code)
 
 
 def decodeQuery(queryString):

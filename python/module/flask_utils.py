@@ -135,28 +135,29 @@ def getAll(queryString=None):
     # Go out to the destination URL based on the situation state
     # Assuming URL ends either in 'video' or 'metadata'
     splitRequest = request.url.split('/')
-    resourceType = splitRequest[-1].lower()
+    resourceType = splitRequest[-1]
 
-    if resourceType == 'video':
-        safeURLName = cmDict['SAFE_VIDEO_URL']
-        unsafeURLName = cmDict['UNSAFE_VIDEO_URL']
-    elif resourceType == 'metadata':
-        safeURLName = cmDict['SAFE_VIDEO_URL']
-        unsafeURLName = cmDict['UNSAFE_VIDEO_URL']
-    elif resourceType == 'liveness':   # used for Kubernetes/Helm liveness testing
+    if resourceType.lower() == 'liveness':   # used for Kubernetes/Helm liveness testing
         return("I'm alive", VALID_RETURN)
-    else:
-        raise Exception('URL needs to end in "video" or "metadata" - not in '+resourceType)
 
-    logger.info(' safeURLName = ' + str(safeURLName) + ' unsafeURLName = ' + str(unsafeURLName))
+#    if 'video' in resourceType:  # URL can either end in 'video' or 'video/<image>
+#        safeURLName = cmDict['SAFE_VIDEO_URL']
+#        unsafeURLName = cmDict['UNSAFE_VIDEO_URL']
+#    elif resourceType == 'surveys':
+#        safeURLName = cmDict['SAFE_VIDEO_URL']
+#        unsafeURLName = cmDict['UNSAFE_VIDEO_URL']
+#    elif resourceType == 'liveness':   # used for Kubernetes/Helm liveness testing
+#        return("I'm alive", VALID_RETURN)
+#    else:
+#        raise Exception('URL needs to end in "video" or "survey" - not in '+resourceType)
 
     if request.method == 'GET':
-        destinationURL = request.url  # FIX THIS TO ADD DESTINATION FOR GET
+        destinationURL = request.url
     else:  # Redirect on write operations
         if situationStatus.lower() == 'safe':
-            destinationURL = safeURLName
+            destinationURL = cmDict['BASE_URL']
         elif 'unsafe' in situationStatus.lower():
-            destinationURL = unsafeURLName
+            destinationURL = cmDict['BASE_URL']+'quarantine'
         else:
             raise Exception('situationStatus = ' + situationStatus)
 
