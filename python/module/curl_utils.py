@@ -21,8 +21,6 @@ ASSET_NAMESPACE = os.getenv("ASSET_NAMESPACE") if os.getenv("ASSET_NAMESPACE") e
 
 
 def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus):
-    # The assumption is that the if there are query parameters (queryString), then this is prefixed by a "?"
-
     parsedURL = urlparse.urlparse(passedURL)
     #    asset = parsedURL.path[1:]
     asset = parsedURL[1] + parsedURL[2]
@@ -63,23 +61,17 @@ def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus):
     return (returnString)
 
 
-def forwardQuery(destinationURL, request, queryString):
+def forwardQuery(destinationURL, request):
     # Go out to the actual destination webserver
-    logger.debug("queryGatewayURL= ", destinationURL, "request.method = " + request.method)
-    returnCode = handleQuery(destinationURL, queryString, request.headers, request.method, request.form,
+    logger.debug("queryGatewayURL= " + destinationURL + " request.method = " + request.method)
+    returnCode = handleQuery(destinationURL, request.headers, request.method, request.form,
                              request.args)
     return (returnCode)
 
 
-def handleQuery(queryGatewayURL, queryString, passedHeaders, method, values, args):
-    #  print("querystring = " + queryString)
-    queryStringsLessBlanks = re.sub(' +', ' ', queryString)
-
-    curlString = queryGatewayURL + urlparse.unquote_plus(queryStringsLessBlanks)
-    #   curlString = queryGatewayURL + str(base64.b64encode(queryStringsLessBlanks.encode('utf-8')))
-    #    if 'Host' in passedHeaders:  # avoid issues with istio gateways
-    #      passedHeaders.pop('Host')
-    logger.debug("curlCommands: curlString = ", curlString)
+def handleQuery(queryGatewayURL, passedHeaders, method, values, args):
+    curlString = queryGatewayURL
+    logger.debug("curlCommands: curlString = " + curlString)
     try:
         if (method == 'POST'):
             r = requests.post(curlString, headers=passedHeaders, data=values, params=args)

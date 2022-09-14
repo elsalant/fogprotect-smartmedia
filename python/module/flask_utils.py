@@ -74,7 +74,6 @@ def getAll(queryString=None):
             # Role will be returned as a list.  To make life simple in the policy, assume that only
             # first element is the real role.  Maybe fix this one day...
             if type(role) is list:
-                logger.info('role was a list of len: '+ str(len(role)))
                 role = role[0]
         except:
             logger.error("Error: no role in JWT!")
@@ -148,18 +147,18 @@ def getAll(queryString=None):
 #        raise Exception('URL needs to end in "video" or "survey" - not in '+resourceType)
 
     if request.method == 'GET':
-        destinationURL = request.url
+        destinationURL = cmDict['BASE_URL']+request.path      #request.url
     else:  # Redirect on write operations
         if situationStatus.lower() == 'safe':
-            destinationURL = cmDict['BASE_URL']
+            destinationURL = cmDict['BASE_URL']+request.path
         elif 'unsafe' in situationStatus.lower():
-            destinationURL = cmDict['BASE_URL']+'quarantine'
+            destinationURL = cmDict['BASE_URL']+request.path+'/quarantine'
         else:
             raise Exception('situationStatus = ' + situationStatus)
 
-    logger.debug("destinationURL= ", destinationURL, "request.method = " + request.method)
+    logger.debug("destinationURL= " + destinationURL + "  request.method = " + request.method + " queryString = " + queryString)
     returnHeaders = ''
-    ans, returnHeaders = handleQuery(destinationURL, queryString, request.headers, request.method, request.form, request.args)
+    ans, returnHeaders = handleQuery(destinationURL, request.headers, request.method, request.form, request.args)
 
     if (ans is None):
         return ("No results returned", VALID_RETURN)
@@ -212,7 +211,7 @@ def getAll(queryString=None):
                 filterPred = resultDict['filterPredicate']
 
         filteredLine += json.dumps(jsonDict)
-        logger.debug("filteredLine", filteredLine)
+        logger.debug("filteredLine: " + filteredLine)
     return (filteredLine, VALID_RETURN)
 
 def getSituationStatus():
