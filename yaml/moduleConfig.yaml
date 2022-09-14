@@ -8,5 +8,5 @@ data:
           SAFE_METADATA_URL: 'http://safe-metadata-url/'
           UNSAFE_VIDEO_URL: 'http://unsafe-video-url/'
           UNSAFE_METADATA_URL: 'http://unsafe-metadata-url/'
-          BASE_URL: 'chatterbox-be.chatterbox.svc.cluster.local:4000/'
+          BASE_URL: 'http://chatterbox-be.chatterbox.svc.cluster.local:4000/'
     

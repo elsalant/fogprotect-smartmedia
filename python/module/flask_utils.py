@@ -136,10 +136,6 @@ def getAll(queryString=None):
     # Assuming URL ends either in 'video' or 'metadata'
     splitRequest = request.url.split('/')
     resourceType = splitRequest[-1]
-
-    if resourceType.lower() == 'liveness':   # used for Kubernetes/Helm liveness testing
-        return("I'm alive", VALID_RETURN)
-
 #    if 'video' in resourceType:  # URL can either end in 'video' or 'video/<image>
 #        safeURLName = cmDict['SAFE_VIDEO_URL']
 #        unsafeURLName = cmDict['UNSAFE_VIDEO_URL']
