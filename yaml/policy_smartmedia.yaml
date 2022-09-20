@@ -19,8 +19,9 @@ data:
       input.request.method == "POST"
       input.request.role == "Editor"
     }
+    
     rule[{"name": "Block specific user", "action": "BlockUser"}] {
-      input.request.situationStatus == "user-unsafe"
+      input.request.situationStatus == "unsafe-user"
       input.request.user == input.request.unsafeUserName
     }
 
