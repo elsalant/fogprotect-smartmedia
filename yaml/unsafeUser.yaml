@@ -5,4 +5,4 @@ metadata:
 data:
   situationstatus.yaml: |
     situation-status: unsafe-user
-    unsafeUserName: 'TC1 Editor'
+    unsafeUserName: 'Video Booth User'
