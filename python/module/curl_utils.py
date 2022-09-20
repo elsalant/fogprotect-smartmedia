@@ -20,7 +20,7 @@ OPA_HEADER = {"Content-Type": "application/json"}
 ASSET_NAMESPACE = os.getenv("ASSET_NAMESPACE") if os.getenv("ASSET_NAMESPACE") else 'default'
 
 
-def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus):
+def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus, user, unsafeUserName):
     parsedURL = urlparse.urlparse(passedURL)
     #    asset = parsedURL.path[1:]
     asset = parsedURL[1] + parsedURL[2]
@@ -34,11 +34,13 @@ def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus):
     opa_query_body = '{ \"input\": { \
         \"request\": { \
         \"method\": \"' + restType + '\", \
+        \"user\": \"' + user + '\", \
+        \"unsafeUserName\": \"' + unsafeUserName + '\", \
         \"role\": \"' + str(role) + '\", \
+        \"situationStatus\": \"' + situationStatus + '\", \
         \"asset\": { \
         \"namespace\": \"' + ASSET_NAMESPACE + '\", \
-        \"name\": \"' + assetName + '\", \
-        \"situationStatus\": \"' + situationStatus + '\" \
+        \"name\": \"' + assetName + '\" \
         }  \
         }  \
         }  \

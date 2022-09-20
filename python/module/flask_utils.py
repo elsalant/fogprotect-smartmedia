@@ -99,11 +99,11 @@ def getAll(queryString=None):
     logger.debug('role = ' + str(role) + " organization = " + str(organization) + " user = " + str(user))
     # The environment variable, SITUATION_STATUS, is created from a config map and can be externally changed.
     # The value of this env determines to which URL to write to
-    situationStatus = getSituationStatus()
-    logger.debug('situationStatus = ' + situationStatus)
+    situationStatus, unsafeUserName = getSituationStatus()
+    logger.debug('After getSituationStatus, situationStatus = ' + situationStatus + ', unsafeUserName = ' + unsafeUserName)
     if (not TESTING):
     # Determine if the requester has access to this URL.  If the requested endpoint shows up in opaDict, then return 500
-        opaDict = composeAndExecuteOPACurl(role, queryString, request.method, situationStatus)
+        opaDict = composeAndExecuteOPACurl(role, queryString, request.method, situationStatus, user, unsafeUserName)
         logger.info('After call to OPA, opaDict = ' + str(opaDict))
         try:
             for resultDict in opaDict['result']:
@@ -154,7 +154,7 @@ def getAll(queryString=None):
         elif 'unsafe' in situationStatus.lower():
             destinationURL = cmDict['BASE_URL']+request.path+'/quarantine'
         else:
-            raise Exception('situationStatus = ' + situationStatus)
+            raise Exception('Error - bad situationStatus = ' + situationStatus)
 
     logger.debug("destinationURL= " + destinationURL + "  request.method = " + request.method + " queryString = " + queryString)
     returnHeaders = ''
@@ -215,19 +215,25 @@ def getAll(queryString=None):
     return (filteredLine, VALID_RETURN)
 
 def getSituationStatus():
+    blockUser = 'N/A'
     if not TESTING:
         try:
             with open(CM_SITUATION_PATH, 'r') as stream:
                 cmReturn = yaml.safe_load(stream)
  #               cmDict = cmReturn.get('data', [])
                 situationStatus = cmReturn['situation-status']
+                logger.info('situationStatus in getSituationStatus = ' + situationStatus)
+                if situationStatus == 'unsafe-user':
+                    blockUser = cmReturn['unsafeUserName']
+                    logger.info('blockUser = ' + blockUser)
+
         except Exception as e:
             errorStr = 'Error reading from file! ' + CM_SITUATION_PATH
             raise ValueError(errorStr)
     else:
         situationStatus = TESTING_SITUATION_STATUS
 
-    return(situationStatus)
+    return(situationStatus, blockUser)
 
 def decryptJWT(encryptedToken, flatKey):
 # String with "Bearer <token>".  Strip out "Bearer"...

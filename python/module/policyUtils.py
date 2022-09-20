@@ -77,6 +77,9 @@ class PolicyUtils():
             jsonList = [json.loads(x) for x in dfToRows]
             return (jsonList, VALID_RETURN)
 
+        if action == 'BlockUser':
+            return ('{"result": "User blocked by policy!!"}')
+
         if action == 'BlockResource':
             if df['resourceType'][0] in policy['transformations'][0]['columns']:
                 return('{"result": "Resource blocked by policy!!"}')
