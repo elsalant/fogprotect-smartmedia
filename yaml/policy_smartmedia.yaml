@@ -2,10 +2,7 @@ apiVersion: v1
 data:
   main: |
     package dataapi.authz
-    rule[{"name": "test", "action": "test", "method": input.request.method, "role": input.request.role}] {
-      1 == 1
-    }
-    
+ 
     rule[{"name": "Only allow administrator GET access to assets when organization is unsafe", "action": "BlockResource"}]{
       input.request.situationStatus == "organization-unsafe"
       input.request.method == "GET"
@@ -14,38 +11,37 @@ data:
 
     rule[{"name": "Block video-booth_operator from GETting videos", "action": "BlockResource"}]{
       input.request.method == "GET"
-      input.request.role == "video-booth-operator"
+      input.request.role == "Video-Booth-User""
       input.request.asset == "videos"
     }
     
     rule[{"name": "Block video-editor from POSTting", "action": "BlockResource"}]{
       input.request.method == "POST"
-      input.request.role == "video-editor"
-    }
-    
-    rule[{"name": "TESTING: Block editor from POSTting", "action": "BlockResource"}]{
-      input.request.method == "POST"
       input.request.role == "Editor"
     }
-    
+    rule[{"name": "Block specific user", "action": "BlockUser"}] {
+      input.request.situationStatus == "user-unsafe"
+      input.request.user == input.request.unsafeUserName
+    }
+
     rule[{"name": "Block video-editor from GETting surveys", "action": "BlockResource"}]{
       input.request.method == "GET"
-      input.request.role == "video-editor"
+      input.request.role == "Editor"
       input.request.asset == "surveys"
     }
 
     rule[{"name": "Block video-editor from GETting videos if video editor is unsafe", "action": "BlockResource"}]{
       input.request.method == "GET"
-      input.request.role == "video-editor"
+      input.request.role == "Editor"
       input.request.asset == "videos"
-      input.request.situationStatus == "video-editor-unsafe"
+      input.request.situationStatus == "Editor-unsafe"
     }
     
     rule[{"name": "Block video-booth-operator from GETting surveys if video-booth-operator is unsafe", "action": "BlockResource"}]{
       input.request.method == "GET"
       input.request.role == "video-booth-operator"
-      input.request.asset == "videos"
-      input.request.situationStatus == "video-booth-operator-unsafe"
+      input.request.asset == "surveys"
+      input.request.situationStatus == "video-booth-user-unsafe"
     }
 
 kind: ConfigMap
