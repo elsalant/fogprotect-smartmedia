@@ -11,7 +11,7 @@ data:
 
     rule[{"name": "Block video-booth_operator from GETting videos", "action": "BlockResource"}]{
       input.request.method == "GET"
-      input.request.role == "Video-Booth-User""
+      input.request.role == "Video-Booth-User"
       input.request.asset == "videos"
     }
     
