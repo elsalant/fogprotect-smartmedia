@@ -28,20 +28,20 @@ data:
     rule[{"name": "Block video-editor from GETting surveys", "action": "BlockResource"}]{
       input.request.method == "GET"
       input.request.role == "Editor"
-      input.request.asset == "surveys"
+      input.request.asset.name == "surveys"
     }
 
     rule[{"name": "Block video-editor from GETting videos if video editor is unsafe", "action": "BlockResource"}]{
       input.request.method == "GET"
       input.request.role == "Editor"
-      input.request.asset == "videos"
+      input.request.asset.name == "videos"
       input.request.situationStatus == "Editor-unsafe"
     }
     
     rule[{"name": "Block video-booth-operator from GETting surveys if video-booth-operator is unsafe", "action": "BlockResource"}]{
       input.request.method == "GET"
       input.request.role == "video-booth-operator"
-      input.request.asset == "surveys"
+      input.request.asset.name == "surveys"
       input.request.situationStatus == "video-booth-user-unsafe"
     }
 
