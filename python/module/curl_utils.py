@@ -20,7 +20,7 @@ OPA_HEADER = {"Content-Type": "application/json"}
 ASSET_NAMESPACE = os.getenv("ASSET_NAMESPACE") if os.getenv("ASSET_NAMESPACE") else 'default'
 
 
-def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus, user, unsafeUserName):
+def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus, user, unsafeEntityName):
     parsedURL = urlparse.urlparse(passedURL)
     #    asset = parsedURL.path[1:]
     asset = parsedURL[1] + parsedURL[2]
@@ -35,7 +35,8 @@ def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus, user, u
         \"request\": { \
         \"method\": \"' + restType + '\", \
         \"user\": \"' + user + '\", \
-        \"unsafeUserName\": \"' + unsafeUserName + '\", \
+        \"unsafeUserName\": \"' + unsafeEntityName + '\", \
+        \"unsafeRoleName\": \"' + unsafeEntityName + '\", \
         \"role\": \"' + str(role) + '\", \
         \"situationStatus\": \"' + situationStatus + '\", \
         \"asset\": { \
@@ -66,9 +67,9 @@ def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus, user, u
 def forwardQuery(destinationURL, request):
     # Go out to the actual destination webserver
     logger.debug("queryGatewayURL= " + destinationURL + " request.method = " + request.method)
-    returnCode = handleQuery(destinationURL, request.headers, request.method, request.form,
+    content, returnCode = handleQuery(destinationURL, request.headers, request.method, request.form,
                              request.args)
-    return (returnCode)
+    return (content, returnCode)
 
 
 def handleQuery(queryGatewayURL, passedHeaders, method, values, args):

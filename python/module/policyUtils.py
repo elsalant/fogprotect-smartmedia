@@ -3,6 +3,7 @@ import json
 
 TEST = False
 VALID_RETURN = 200
+BLOCKED_RETURN = 401
 
 class PolicyUtils():
     def __init__(self, logger):
@@ -78,19 +79,19 @@ class PolicyUtils():
             return (jsonList, VALID_RETURN)
 
         if action == 'BlockUser':
-            return ('{"result": "User blocked by policy!!"}')
+            return ('{"result": "User blocked by policy!!"}', BLOCKED_RETURN)
 
         if action == 'BlockResource':
             if df['resourceType'][0] in policy['transformations'][0]['columns']:
-                return('{"result": "Resource blocked by policy!!"}')
+                return('{"result": "Resource blocked by policy!!"}', BLOCKED_RETURN)
             else:
                 self.logger.error(f'Error in BlockResourced. resourceType =  ' + df['resourceType'][0] + \
                       ' policy[\'transformations\'][0][\'columns\'][0] = ' + df['resourceType'][0] in policy['transformations'][0]['columns'][0])
-                return((str(df.to_json())))
+                return(str(df.to_json()), BLOCKED_RETURN)
 
         if action == 'AddColumn':
             # Need to get the status from the asset and use this instead of "UNSAFE"
             df['Status'] = 'UNSAFE'
-            return('{"result": "Unsafe column added!"}')
+            return('{"result": "Unsafe column added!"}', VALID_RETURN)
 
         return('{"Unknown transformation": "'+ action + '"}')

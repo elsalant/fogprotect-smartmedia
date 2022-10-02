@@ -99,11 +99,11 @@ def getAll(queryString=None):
     logger.debug('role = ' + str(role) + " organization = " + str(organization) + " user = " + str(user))
     # The environment variable, SITUATION_STATUS, is created from a config map and can be externally changed.
     # The value of this env determines to which URL to write to
-    situationStatus, unsafeUserName = getSituationStatus()
-    logger.debug('After getSituationStatus, situationStatus = ' + situationStatus + ', unsafeUserName = ' + unsafeUserName)
+    situationStatus, unsafeEntityName = getSituationStatus()
+    logger.debug('After getSituationStatus, situationStatus = ' + situationStatus + ', unsafeEntityName = ' + unsafeEntityName)
     if (not TESTING):
     # Determine if the requester has access to this URL.  If the requested endpoint shows up in opaDict, then return 500
-        opaDict = composeAndExecuteOPACurl(role, queryString, request.method, situationStatus, user, unsafeUserName)
+        opaDict = composeAndExecuteOPACurl(role, queryString, request.method, situationStatus, user, unsafeEntityName)
         logger.info('After call to OPA, opaDict = ' + str(opaDict))
         try:
             for resultDict in opaDict['result']:
@@ -115,7 +115,7 @@ def getAll(queryString=None):
                           ", \"URL\": \"" + request.url + "\"" + \
                           ", \"method\": \"" + request.method + "\"" + \
                           ", \"Reason\": \"" + resultDict['name'] + "\"}"
-                if blockURL == "BlockURL":
+                if blockURL == "BlockURL" or blockURL == "BlockUser" or blockURL == "BlockRole":
                     kafkaUtils.writeToKafka(jString, KAFKA_DENY_TOPIC)
                     return ("Access denied!", ACCESS_DENIED_CODE)
                 else:
@@ -158,10 +158,10 @@ def getAll(queryString=None):
 
     logger.debug("destinationURL= " + destinationURL + "  request.method = " + request.method + " queryString = " + queryString)
     returnHeaders = ''
-    ans, returnHeaders = handleQuery(destinationURL, request.headers, request.method, request.form, request.args)
+    ans, returnStatus = handleQuery(destinationURL, request.headers, request.method, request.form, request.args)
 
-    if (ans is None):
-        return ("No results returned", VALID_RETURN)
+    if (ans is None or returnStatus != VALID_RETURN):
+        return ("No results returned", returnStatus)
 
     filteredLine = ''
  # The input can actually be a list, a string (JSON), or interpreted by Python to be a dict
@@ -170,9 +170,6 @@ def getAll(queryString=None):
     while processing:
         processing = False
         if (type(ans) is str):
-            if (returnHeaders['Content-Type'] == 'video/mp4'):  # this check might not be necessary - type should return as bytes in this case
-                logger.debug("binary data found")
-                return ans, VALID_RETURN
             try:
                 jsonDict = json.loads(ans)
             except:
@@ -224,8 +221,11 @@ def getSituationStatus():
                 situationStatus = cmReturn['situation-status']
                 logger.info('situationStatus in getSituationStatus = ' + situationStatus)
                 if situationStatus == 'unsafe-user':
-                    blockUser = cmReturn['unsafeUserName']
-                    logger.info('blockUser = ' + blockUser)
+                    blockedEntity = cmReturn['unsafeUserName']
+                    logger.info('blockUser = ' + blockedEntity)
+                if situationStatus == 'unsafe-role':
+                    blockRole = cmReturn['unsafeRoleName']
+                    logger.info('blockRole = ' + blockedEntity)
 
         except Exception as e:
             errorStr = 'Error reading from file! ' + CM_SITUATION_PATH
@@ -233,7 +233,7 @@ def getSituationStatus():
     else:
         situationStatus = TESTING_SITUATION_STATUS
 
-    return(situationStatus, blockUser)
+    return(situationStatus, blockedEntity)
 
 def decryptJWT(encryptedToken, flatKey):
 # String with "Bearer <token>".  Strip out "Bearer"...

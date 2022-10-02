@@ -6,44 +6,59 @@ data:
     rule[{"name": "Only allow administrator GET access to assets when organization is unsafe", "action": "BlockResource"}]{
       input.request.situationStatus == "organization-unsafe"
       input.request.method == "GET"
-      input.request.role != "Admin"
+      lower(input.request.role) != lower("Admin")
     }
 
     rule[{"name": "Block video-booth_operator from GETting videos", "action": "BlockResource"}]{
       input.request.method == "GET"
-      input.request.role == "Video-Booth-User"
+      lower(input.request.role) == lower("Video-Booth-User")
       input.request.asset == "videos"
     }
     
     rule[{"name": "Block video-editor from POSTting", "action": "BlockResource"}]{
       input.request.method == "POST"
-      input.request.role == "Editor"
+      lower(input.request.role) == lower("Video-Booth-Editor")
     }
     
     rule[{"name": "Block specific user", "action": "BlockUser"}] {
+      input.request.method == "GET"
       input.request.situationStatus == "unsafe-user"
-      input.request.user == input.request.unsafeUserName
+      lower(input.request.user) == lower(input.request.unsafeUserName)
     }
 
+    rule[{"name": "Block specific role", "action": "BlockRole"}] {
+      input.request.method == "GET"
+      input.request.situationStatus == "unsafe-role"
+      lower(input.request.user) == lower(input.request.unsafeRoleName)
+    }
+    
     rule[{"name": "Block video-editor from GETting surveys", "action": "BlockResource"}]{
       input.request.method == "GET"
-      input.request.role == "Editor"
-      input.request.asset.name == "surveys"
+      lower(input.request.role) == lower("Editor")
+      contains(input.request.asset.name, "survey")
     }
 
     rule[{"name": "Block video-editor from GETting videos if video editor is unsafe", "action": "BlockResource"}]{
       input.request.method == "GET"
-      input.request.role == "Editor"
+      lower(input.request.role) == lower("TC1 Editor")
       input.request.asset.name == "videos"
       input.request.situationStatus == "Editor-unsafe"
     }
     
     rule[{"name": "Block video-booth-operator from GETting surveys if video-booth-operator is unsafe", "action": "BlockResource"}]{
       input.request.method == "GET"
-      input.request.role == "video-booth-operator"
-      input.request.asset.name == "surveys"
+      lower(input.request.role) == lower("video-booth-operator")
+      contains(input.request.asset.name, "survey")
       input.request.situationStatus == "video-booth-user-unsafe"
     }
+
+    rule[{"name": "Block ATC from GETting if organization is unsafe", "action": "BlockResource"}]{
+      input.request.method == "GET"
+      input.request.organization == "ATC"
+      input.request.situationStatus == "organization-unsafe"
+    }
+
+
 
 kind: ConfigMap
 metadata:
