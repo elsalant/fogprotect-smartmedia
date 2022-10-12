@@ -37,7 +37,7 @@ def main():
     global cmDict
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
-    logger.info(f"starting module!!")
+    logger.info(f"starting module!")
 
 if __name__ == "__main__":
     main()

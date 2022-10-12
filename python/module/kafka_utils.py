@@ -6,7 +6,7 @@ import logging
 TEST = False
 kafka_already_connected = False
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('kafka_utils.py')
 logger.setLevel(logging.DEBUG)
 
 KAFKA_SERVER = os.getenv("FOGPROTECT_KAFKA_SERVER") if os.getenv("FOGPROTECT_KAFKA_SERVER") else "172.31.35.158:9092"

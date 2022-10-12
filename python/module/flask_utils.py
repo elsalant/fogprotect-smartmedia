@@ -96,7 +96,7 @@ def getAll(queryString=None):
         role = 'ERROR NO ROLE!'
     if (organization == None):
         organization = 'NO ORGANIZATION'
-    logger.debug('role = ' + str(role) + " organization = " + str(organization) + " user = " + str(user))
+    logger.debug('-> role = ' + str(role) + " organization = " + str(organization) + " user = " + str(user))
     # The environment variable, SITUATION_STATUS, is created from a config map and can be externally changed.
     # The value of this env determines to which URL to write to
     situationStatus, unsafeEntityName = getSituationStatus()
@@ -213,6 +213,7 @@ def getAll(queryString=None):
 
 def getSituationStatus():
     blockUser = 'N/A'
+    blockEntity = 'N/A'
     if not TESTING:
         try:
             with open(CM_SITUATION_PATH, 'r') as stream:
@@ -224,8 +225,8 @@ def getSituationStatus():
                     blockedEntity = cmReturn['unsafeUserName']
                     logger.info('blockUser = ' + blockedEntity)
                 if situationStatus == 'unsafe-role':
-                    blockRole = cmReturn['unsafeRoleName']
-                    logger.info('blockRole = ' + blockedEntity)
+                    blockedEntity = cmReturn['unsafeRoleName']
+                    logger.info('blockRole = ' + str(blockedEntity))
 
         except Exception as e:
             errorStr = 'Error reading from file! ' + CM_SITUATION_PATH
