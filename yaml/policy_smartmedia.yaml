@@ -1,7 +1,7 @@
 apiVersion: v1
 data:
-  main: |
-    
+  main: | 
+   
    package dataapi.authz
 
    rule[{"name": "Block specific user", "action": "BlockUser"}] {
@@ -59,3 +59,10 @@ data:
       input.request.organization == "ATC"
       input.request.situationStatus == "organization-unsafe"
     }
+
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  labels:
+    openpolicyagent.org/policy: rego
+  name: policy-smartmedia
