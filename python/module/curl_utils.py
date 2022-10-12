@@ -20,7 +20,7 @@ OPA_HEADER = {"Content-Type": "application/json"}
 ASSET_NAMESPACE = os.getenv("ASSET_NAMESPACE") if os.getenv("ASSET_NAMESPACE") else 'default'
 
 
-def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus, user, unsafeEntityName):
+def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus, user, unsafeEntityName, organization):
     parsedURL = urlparse.urlparse(passedURL)
     #    asset = parsedURL.path[1:]
     asset = parsedURL[1] + parsedURL[2]
@@ -38,6 +38,7 @@ def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus, user, u
         \"unsafeUserName\": \"' + unsafeEntityName + '\", \
         \"unsafeRoleName\": \"' + unsafeEntityName + '\", \
         \"role\": \"' + str(role) + '\", \
+        \"organization\": \"' + str(organization) + '\", \
         \"situationStatus\": \"' + situationStatus + '\", \
         \"asset\": { \
         \"namespace\": \"' + ASSET_NAMESPACE + '\", \
