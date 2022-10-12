@@ -17,6 +17,7 @@ FLASK_PORT_NUM = 5559  # this application
 FIXED_SCHEMA_ROLE = 'realm_access.roles'
 FIXED_SCHEMA_ORG = 'organization'
 FIXED_SCHEMA_USER = 'name'
+FIXED_PREFERRED_NAME = 'preferred_username'
 
 KAFKA_DENY_TOPIC = os.getenv("KAFKA_DENY_TOPIC") if os.getenv("KAFKA_TOPIC") else "blocked-access"
 KAFKA_ALLOW_TOPIC = os.getenv("KAFKA_ALLOW_TOPIC") if os.getenv("KAFKA_TOPIC") else "granted-access"
@@ -79,11 +80,16 @@ def getAll(queryString=None):
             logger.error("Error: no role in JWT!")
             role = 'ERROR NO ROLE!'
         userKey = os.getenv("SCHEMA_USER") if os.getenv("SCHEMA_USER") else FIXED_SCHEMA_USER
+        preferredUserNameKey = FIXED_PREFERRED_NAME
         try:
-            user = decryptJWT(payloadEncrypted, userKey)
+            user = decryptJWT(payloadEncrypted, preferredUserNameKey)
         except:
-            logger.error("Error: no user in JWT!")
-            user = 'ERROR NO USER!'
+            logger.error("No preferred_username in JWT!  Trying \'name\'")
+            try:
+                user = decryptJWT(payloadEncrypted, userKey)
+            except:
+                logger.error("Error: no user in JWT!")
+                user = 'ERROR NO USER!'
         organizationKey = os.getenv("SCHEMA_ORG") if os.getenv("SCHEMA_ORG") else FIXED_SCHEMA_ORG
         try:
             organization = decryptJWT(payloadEncrypted, organizationKey)
@@ -108,6 +114,7 @@ def getAll(queryString=None):
         try:
             for resultDict in opaDict['result']:
                 blockURL = resultDict['action']
+                logger.debug('blockURL = ' + str(blockURL))
                 jString = \
                           "{\"user\": \"" + str(user) +  "\"" \
                           ", \"role\": \"" + str(role) + "\"" + \
@@ -115,7 +122,7 @@ def getAll(queryString=None):
                           ", \"URL\": \"" + request.url + "\"" + \
                           ", \"method\": \"" + request.method + "\"" + \
                           ", \"Reason\": \"" + resultDict['name'] + "\"}"
-                if blockURL == "BlockURL" or blockURL == "BlockUser" or blockURL == "BlockRole":
+                if blockURL == "BlockURL" or blockURL == "BlockUser" or blockURL == "BlockRole" or blockURL == 'BlockResource':
                     kafkaUtils.writeToKafka(jString, KAFKA_DENY_TOPIC)
                     return ("Access denied!", ACCESS_DENIED_CODE)
                 else:
@@ -227,7 +234,9 @@ def getSituationStatus():
                 if situationStatus == 'unsafe-role':
                     blockedEntity = cmReturn['unsafeRoleName']
                     logger.info('blockRole = ' + str(blockedEntity))
-
+                if situationStatus == 'organization-unsafe':
+                    blockedEntity = 'ATC'
+                    logger.info('block organization = ATC')
         except Exception as e:
             errorStr = 'Error reading from file! ' + CM_SITUATION_PATH
             raise ValueError(errorStr)
