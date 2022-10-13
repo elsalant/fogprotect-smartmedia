@@ -12,10 +12,16 @@
       lower(input.request.role) == lower(input.request.unsafeRoleName)
     }
 
-    rule[{"name": "Only allow administrator GET access to assets when organization is unsafe and not VRT", "action": "BlockResource"}]{
+    rule[{"name": "Only allow administrator GET access to assets when organization is unsafe and not VRT(1)", "action": "BlockResource"}]{
       input.request.situationStatus == "organization-unsafe"
       input.request.method == "GET"
       lower(input.request.organization) != lower("VRT")
+    }
+
+    rule[{"name": "Only allow administrator GET access to assets when organization is unsafe and not VRT(2)", "action": "BlockResource"}]{
+      input.request.situationStatus == "organization-unsafe"
+      input.request.method == "GET"
+      lower(input.request.organization) == lower("VRT")
       lower(input.request.role) != lower("Admin")
     }
 
