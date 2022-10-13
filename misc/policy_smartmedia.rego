@@ -55,9 +55,3 @@
       contains(input.request.asset.name, "survey")
       input.request.situationStatus == "video-booth-operator-unsafe"
     }
-
-    rule[{"name": "Block ATC from GETting if organization is unsafe", "action": "BlockResource"}]{
-      input.request.method == "GET"
-      input.request.organization == "ATC"
-      input.request.situationStatus == "organization-unsafe"
-    }
