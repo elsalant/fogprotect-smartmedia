@@ -16,9 +16,11 @@ NOTE:
 policies are installed from configmap, policy-smartmedia in yaml/policy_smartmedia.yaml
 =======
 2. Load policy configmap: yaml/policy_smartmedia.yaml
+=======
 3. Install the yaml to externalize the ingress gateway: sm-smartmedia-ingress.yaml
 4. helm install sm oci://ghcr.io/elsalant/smartmedia-chart
-5. kubectl get pods - get pod for opa then forward, e.g. 
+5. scripts/curlLoadPolicy.sh
+6. kubectl get pods - get pod for opa then forward, e.g. 
    kubectl port-forward opa-75b6c4cd69-clv62 8181
 
 NOTE: Policies are installed from configmap!!
