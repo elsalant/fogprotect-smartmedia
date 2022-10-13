@@ -109,7 +109,7 @@ def getAll(queryString=None):
     logger.debug('After getSituationStatus, situationStatus = ' + situationStatus + ', unsafeEntityName = ' + unsafeEntityName)
     if (not TESTING):
     # Determine if the requester has access to this URL.  If the requested endpoint shows up in opaDict, then return 500
-        opaDict = composeAndExecuteOPACurl(role, queryString, request.method, situationStatus, user, unsafeEntityName)
+        opaDict = composeAndExecuteOPACurl(role, queryString, request.method, situationStatus, user, unsafeEntityName, organization)
         logger.info('After call to OPA, opaDict = ' + str(opaDict))
         try:
             for resultDict in opaDict['result']:
