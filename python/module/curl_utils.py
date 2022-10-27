@@ -76,13 +76,16 @@ def forwardQuery(destinationURL, request):
 def handleQuery(queryGatewayURL, passedHeaders, method, values, args):
     curlString = queryGatewayURL
     logger.debug("curlCommands: curlString = " + curlString)
+    httpAuthJSON = {'Authorization': passedHeaders.environ['HTTP_AUTHORIZATION']}
     try:
         if (method == 'POST'):
- #           r = requests.post(curlString, headers=passedHeaders, data=values, params=args)
-            r = requests.post(curlString, data=values, params=args)
+ #           r = requests.post(curlString, headers=passedHeaders, data=values, params=args)  # breaks things..
+ #           r = requests.post(curlString, data=values, params=args)                         # original code
+            r = requests.post(curlString, headers=httpAuthJSON, data=values, params=args)
         else:
 #            r = requests.get(curlString, headers=passedHeaders, data=values, params=args)
-            r = requests.get(curlString, data=values, params=args)
+#            r = requests.get(curlString, data=values, params=args)
+            r = requests.get(curlString, data=values, params=args,headers=httpAuthJSON )
     except Exception as e:
         logger.debug(
             "Exception in handleQuery, curlString = " + curlString + ", method = " + method + " passedHeaders = " + str(

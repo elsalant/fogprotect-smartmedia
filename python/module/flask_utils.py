@@ -90,6 +90,11 @@ def getAll(queryString=None):
             except:
                 logger.error("Error: no user in JWT!")
                 user = 'ERROR NO USER!'
+        try:
+            sub = decryptJWT(payloadEncrypted, 'sub')
+        except:
+            logger.error("No sub in JWT!")
+            sub = 'MISSING SUB!'
         organizationKey = os.getenv("SCHEMA_ORG") if os.getenv("SCHEMA_ORG") else FIXED_SCHEMA_ORG
         try:
             organization = decryptJWT(payloadEncrypted, organizationKey)
@@ -105,8 +110,9 @@ def getAll(queryString=None):
     logger.debug('-> role = ' + str(role) + " organization = " + str(organization) + " user = " + str(user))
     # The environment variable, SITUATION_STATUS, is created from a config map and can be externally changed.
     # The value of this env determines to which URL to write to
-    situationStatus, unsafeEntityName = getSituationStatus()
-    logger.debug('After getSituationStatus, situationStatus = ' + situationStatus + ', unsafeEntityName = ' + unsafeEntityName)
+    situationStatus, unsafeEntityName, unsafeOrganization = getSituationStatus()
+    logger.debug('After getSituationStatus, situationStatus = ' + situationStatus + ', \
+        unsafeEntityName = ' + unsafeEntityName + ' unsafeOrganization = ' + unsafeOrganization)
     if (not TESTING):
     # Determine if the requester has access to this URL.  If the requested endpoint shows up in opaDict, then return 500
         opaDict = composeAndExecuteOPACurl(role, queryString, request.method, situationStatus, user, unsafeEntityName, organization)
@@ -132,6 +138,7 @@ def getAll(queryString=None):
             print(e)
             jString = \
                 "{\"user\": \"" + str(user) + "\"" + \
+                ", \"sub\": \"" + str(sub) + "\"" + \
                 ", \"role\": \"" + str(role) + "\"" + \
                 ", \"org\": \"" + str(organization) + "\"" + \
                 ", \"URL\": \"" + request.url + "\"" + \
@@ -220,7 +227,8 @@ def getAll(queryString=None):
 
 def getSituationStatus():
     blockUser = 'N/A'
-    blockEntity = 'N/A'
+    blockedEntity = 'N/A'
+    unsafeOrganization = 'N/A'
     if not TESTING:
         try:
             with open(CM_SITUATION_PATH, 'r') as stream:
@@ -233,17 +241,27 @@ def getSituationStatus():
                     logger.info('blockUser = ' + blockedEntity)
                 if situationStatus == 'unsafe-role':
                     blockedEntity = cmReturn['unsafeRoleName']
+                    try:
+                        unsafeOrganization = cmReturn['unsafeOrganization']
+                    except:
+                        print("ERROR: No unsafeOrganization passed in unsafe role yaml!")
+                        unsafeOrganization = 'ERROR - missing unsafe organization'
                     logger.info('blockRole = ' + str(blockedEntity))
                 if situationStatus == 'organization-unsafe':
                     blockedEntity = 'ATC'
-                    logger.info('block organization = ATC')
+                    try:
+                        unsafeOrganization = cmReturn['unsafeOrganization']
+                    except:
+                        print("ERROR: No unsafeOrganization passed in unsafe role yaml!")
+                        unsafeOrganization = 'ATC'
+                    logger.info('unsafeOrganization = ' + unsafeOrganization)
         except Exception as e:
             errorStr = 'Error reading from file! ' + CM_SITUATION_PATH
             raise ValueError(errorStr)
     else:
         situationStatus = TESTING_SITUATION_STATUS
 
-    return(situationStatus, blockedEntity)
+    return(situationStatus, blockedEntity, unsafeOrganization)
 
 def decryptJWT(encryptedToken, flatKey):
 # String with "Bearer <token>".  Strip out "Bearer"...
