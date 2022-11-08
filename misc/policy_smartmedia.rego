@@ -68,9 +68,23 @@
       lower(input.request.organization) == lower(input.request.unsafeOrganization)
     }
     
+    rule[{"name": "Block Editor from GETting videos if video editor is unsafe", "action": "BlockResource"}]{
+      input.request.method == "GET"
+      lower(input.request.role) == lower("Editor")
+      input.request.asset.name == "videos"
+      input.request.situationStatus == "video-editor-unsafe"
+      lower(input.request.organization) == lower(input.request.unsafeOrganization)
+    }
+
     rule[{"name": "Block video-booth-operator from GETting surveys if video-booth-operator is unsafe", "action": "BlockResource"}]{
       input.request.method == "GET"
       lower(input.request.role) == lower("video-booth-operator")
+      contains(input.request.asset.name, "survey")
+      input.request.situationStatus == "video-booth-operator-unsafe"
+    }
+    rule[{"name": "Block Video-Booth-User from GETting surveys if video-booth-operator is unsafe", "action": "BlockResource"}]{
+      input.request.method == "GET"
+      lower(input.request.role) == lower("Video-Booth-User")
       contains(input.request.asset.name, "survey")
       input.request.situationStatus == "video-booth-operator-unsafe"
     }
