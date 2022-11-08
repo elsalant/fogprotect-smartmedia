@@ -14,6 +14,7 @@ data:
       input.request.method == "GET"
       input.request.situationStatus == "unsafe-role"
       lower(input.request.role) == lower(input.request.unsafeRoleName)
+      lower(input.request.organization) = lower(input.request.unsafeOrganization)
     }
 
     rule[{"name": "Only allow administrator GET access to assets when organization is unsafe and not VRT(1)", "action": "BlockResource"}]{
@@ -34,15 +35,32 @@ data:
       lower(input.request.role) == lower("video-booth-operator")
       input.request.asset.name == "videos"
     }
-    
+  
+      rule[{"name": "Block Video-Booth-User from GETting videos", "action": "BlockResource"}]{
+      input.request.method == "GET"
+      lower(input.request.role) == lower("Video-Booth-User")
+      input.request.asset.name == "videos"
+    }
+   
     rule[{"name": "Block video-editor from POSTting", "action": "BlockResource"}]{
       input.request.method == "POST"
       lower(input.request.role) == lower("video-editor")
     }
     
+    rule[{"name": "Block Editor from POSTting", "action": "BlockResource"}]{
+      input.request.method == "POST"
+      lower(input.request.role) == lower("Editor")
+    }
+ 
     rule[{"name": "Block video-editor from GETting surveys", "action": "BlockResource"}]{
       input.request.method == "GET"
       lower(input.request.role) == lower("video-editor")
+      contains(input.request.asset.name, "survey")
+    }
+
+    rule[{"name": "Block Editor from GETting surveys", "action": "BlockResource"}]{
+      input.request.method == "GET"
+      lower(input.request.role) == lower("Editor")
       contains(input.request.asset.name, "survey")
     }
 
@@ -53,6 +71,13 @@ data:
       input.request.situationStatus == "video-editor-unsafe"
     }
     
+    rule[{"name": "Block Editor from GETting videos if video editor is unsafe", "action": "BlockResource"}]{
+      input.request.method == "GET"
+      lower(input.request.role) == lower("Editor")
+      input.request.asset.name == "videos"
+      input.request.situationStatus == "video-editor-unsafe"
+    }
+ 
     rule[{"name": "Block video-booth-operator from GETting surveys if video-booth-operator is unsafe", "action": "BlockResource"}]{
       input.request.method == "GET"
       lower(input.request.role) == lower("video-booth-operator")
@@ -60,6 +85,12 @@ data:
       input.request.situationStatus == "video-booth-operator-unsafe"
     }
 
+    rule[{"name": "Block Video-Booth-User from GETting surveys if video-booth-operator is unsafe", "action": "BlockResource"}]{
+      input.request.method == "GET"
+      lower(input.request.role) == lower("Video-Booth-User")
+      contains(input.request.asset.name, "survey")
+      input.request.situationStatus == "video-booth-operator-unsafe"
+    }
 
 kind: ConfigMap
 metadata:
