@@ -118,24 +118,35 @@ def getAll(queryString=None):
         opaDict = composeAndExecuteOPACurl(role, queryString, request.method, situationStatus, user, unsafeEntityName, organization)
         logger.info('After call to OPA, opaDict = ' + str(opaDict))
         try:
-            for resultDict in opaDict['result']:
-                blockURL = resultDict['action']
-                logger.debug('blockURL = ' + str(blockURL))
+            if len(opaDict['result']) == 0:
                 jString = \
                           "{\"user\": \"" + str(user) +  "\"" \
+                          ", \"sub\": \"" + str(sub) + "\"" + \
                           ", \"role\": \"" + str(role) + "\"" + \
                           ", \"org\": \"" + str(organization) + "\"" + \
                           ", \"URL\": \"" + request.url + "\"" + \
                           ", \"method\": \"" + request.method + "\"" + \
-                          ", \"Reason\": \"" + resultDict['name'] + "\"}"
-                if blockURL == "BlockURL" or blockURL == "BlockUser" or blockURL == "BlockRole" or blockURL == 'BlockResource':
-                    kafkaUtils.writeToKafka(jString, KAFKA_DENY_TOPIC)
-                    return ("Access denied!", ACCESS_DENIED_CODE)
-                else:
-                    kafkaUtils.writeToKafka(jString, KAFKA_ALLOW_TOPIC)
-        except Exception as e:
+                          ", \"reason\": \"" + "No restrictions by default" + "\"}"
+                kafkaUtils.writeToKafka(jString, KAFKA_ALLOW_TOPIC)
+            else:
+                for resultDict in opaDict['result']:
+                    blockURL = resultDict['action']
+                    logger.debug('blockURL = ' + str(blockURL))
+                    jString = \
+                              "{\"user\": \"" + str(user) +  "\"" \
+                              ", \"sub\": \"" + str(sub) + "\"" + \
+                              ", \"role\": \"" + str(role) + "\"" + \
+                              ", \"org\": \"" + str(organization) + "\"" + \
+                              ", \"URL\": \"" + request.url + "\"" + \
+                              ", \"method\": \"" + request.method + "\"" + \
+                              ", \"reason\": \"" + resultDict['name'] + "\"}"
+                    if blockURL == "BlockURL" or blockURL == "BlockUser" or blockURL == "BlockRole" or blockURL == 'BlockResource':
+                        kafkaUtils.writeToKafka(jString, KAFKA_DENY_TOPIC)
+                        return ("Access denied!", ACCESS_DENIED_CODE)
+                    else:
+                        kafkaUtils.writeToKafka(jString, KAFKA_ALLOW_TOPIC)
+        except:
             logger.debug('OOps - opaDict does not return a result ' + str(opaDict))
-            print(e)
             jString = \
                 "{\"user\": \"" + str(user) + "\"" + \
                 ", \"sub\": \"" + str(sub) + "\"" + \
@@ -143,7 +154,7 @@ def getAll(queryString=None):
                 ", \"org\": \"" + str(organization) + "\"" + \
                 ", \"URL\": \"" + request.url + "\"" + \
                 ", \"method\": \"" + request.method + "\"" + \
-                ", \"Reason\": " + '"No rules found"}'
+                ", \"reason\": " + '"No rules found"}'
             kafkaUtils.writeToKafka(jString, KAFKA_ALLOW_TOPIC)
     # Go out to the destination URL based on the situation state
     # Assuming URL ends either in 'video' or 'metadata'
@@ -206,21 +217,23 @@ def getAll(queryString=None):
             logger.debug("WARNING: Too complicated - not filtering")
             return (json.dumps(ans), VALID_RETURN)
   #  for line in ans:
-        for resultDict in opaDict['result']:
-            action = resultDict['action']
+        try:
+            for resultDict in opaDict['result']:
+                action = resultDict['action']
             # Handle the filtering here
-            if (action == 'Deny'):
-                return ('{"action":"Deny","name":"Deny by default"}', ACCESS_DENIED_CODE)
-            if (action == 'Allow'):
-                return (json.dumps(ans), VALID_RETURN)
+                if (action == 'Deny'):
+                    return ('{"action":"Deny","name":"Deny by default"}', ACCESS_DENIED_CODE)
+                if (action == 'Allow'):
+                    return (json.dumps(ans), VALID_RETURN)
             # Note: can have both "RedactColumn" and "BlockColumn" actions in line
-            if (action == 'RedactColumn' or action == 'BlockColumn'):
-                columns = resultDict['columns']
-                for keySearch in columns:
-                    recurse(jsonDict, keySearch.split('.'), action)
-            if (action == 'Filter'):
-                filterPred = resultDict['filterPredicate']
-
+                if (action == 'RedactColumn' or action == 'BlockColumn'):
+                    columns = resultDict['columns']
+                    for keySearch in columns:
+                        recurse(jsonDict, keySearch.split('.'), action)
+                if (action == 'Filter'):
+                    filterPred = resultDict['filterPredicate']
+        except:
+            logger.debug('no redaction rules returned')
         filteredLine += json.dumps(jsonDict)
         logger.debug("filteredLine: " + filteredLine)
     return (filteredLine, VALID_RETURN)
