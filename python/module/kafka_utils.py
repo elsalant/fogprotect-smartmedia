@@ -36,7 +36,8 @@ class KafkaUtils:
                 enable_auto_commit=True,
                 value_deserializer=lambda x: loads(x.decode('utf-8')))
         except:
-            logger.info("Kafka did not connect for host " + self.kafkaHost + " and  topic " + msgTopic)
+            debugLine= "Kafka did not connect for host " + str(self.kafkaHost) + " and  topic " + str(msgTopic)
+            logger.info(debugLine)
             self.kafkaDisabled = True
         logger.info(
             f"Connection to kafka at host " + self.kafkaHost + " and  topic " + msgTopic + " succeeded!")

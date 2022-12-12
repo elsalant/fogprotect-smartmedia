@@ -22,7 +22,7 @@
     rule[{"name": "Only allow administrator GET access to assets when organization is unsafe and not VRT(2)", "action": "BlockResource"}]{
       input.request.situationStatus == "organization-unsafe"
       input.request.method == "GET"
-      lower(input.request.organization) == lower("VRT")
+      lower(input.request.organization) != lower("VRT")
       lower(input.request.role) != lower("Admin")
     }
 
@@ -67,7 +67,7 @@
       input.request.situationStatus == "video-editor-unsafe"
       lower(input.request.organization) == lower(input.request.unsafeOrganization)
     }
-    
+
     rule[{"name": "Block Editor from GETting videos if video editor is unsafe", "action": "BlockResource"}]{
       input.request.method == "GET"
       lower(input.request.role) == lower("Editor")
