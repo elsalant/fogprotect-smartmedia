@@ -68,28 +68,26 @@ def composeAndExecuteOPACurl(role, passedURL, restType, situationStatus, user, u
 def forwardQuery(destinationURL, request):
     # Go out to the actual destination webserver
     logger.debug("queryGatewayURL= " + destinationURL + " request.method = " + request.method)
-    content, returnCode = handleQuery(destinationURL, request.headers, request.method, request.form,
-                             request.args)
+    content, returnCode = handleQuery(destinationURL, request)
     return (content, returnCode)
 
-
-def handleQuery(queryGatewayURL, passedHeaders, method, values, args):
+def handleQuery(queryGatewayURL, request):
     curlString = queryGatewayURL
     logger.debug("curlCommands: curlString = " + curlString)
-    httpAuthJSON = {'Authorization': passedHeaders.environ['HTTP_AUTHORIZATION']}
+    httpAuthJSON = {'Authorization': request.headers.environ['HTTP_AUTHORIZATION']}
     try:
-        if (method == 'POST'):
+        if (request.method == 'POST'):
  #           r = requests.post(curlString, headers=passedHeaders, data=values, params=args)  # breaks things..
  #           r = requests.post(curlString, data=values, params=args)                         # original code
-            r = requests.post(curlString, headers=httpAuthJSON, data=values, params=args)
+            r = requests.post(curlString, headers=httpAuthJSON,  files= request.files, data=request.form, params=request.args)
         else:
 #            r = requests.get(curlString, headers=passedHeaders, data=values, params=args)
 #            r = requests.get(curlString, data=values, params=args)
-            r = requests.get(curlString, data=values, params=args,headers=httpAuthJSON )
+            r = requests.get(curlString, data=request.form, params=request.args,headers=httpAuthJSON )
     except Exception as e:
         logger.debug(
-            "Exception in handleQuery, curlString = " + curlString + ", method = " + method + " passedHeaders = " + str(
-                passedHeaders) + " values = " + str(values))
+            "Exception in handleQuery, curlString = " + curlString + ", method = " + request.method + " passedHeaders = " + str(
+                request.headers) + " values = " + str(request.form))
         raise ConnectionError('Error connecting ')
     logger.debug("curl request = " + curlify.to_curl(r.request))
     return (r.content, r.status_code)

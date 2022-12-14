@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, redirect
 from .kafka_utils import KafkaUtils
 from .curl_utils import composeAndExecuteOPACurl, handleQuery
 import yaml
@@ -180,10 +180,15 @@ def getAll(queryString=None):
             destinationURL = cmDict['BASE_URL']+request.path+'/quarantine'
         else:
             raise Exception('Error - bad situationStatus = ' + situationStatus)
+        resp = redirect(destinationURL)
+        ans = resp.data
+        returnStatus = resp.status_code
+        logger.debug('redirect returns status of ' + str(returnStatus))
 
     logger.debug("destinationURL= " + destinationURL + "  request.method = " + request.method + " queryString = " + queryString)
     returnHeaders = ''
-    ans, returnStatus = handleQuery(destinationURL, request.headers, request.method, request.form, request.args)
+    if request.method == 'GET':
+        ans, returnStatus = handleQuery(destinationURL, request)
 
     if (ans is None or returnStatus != VALID_RETURN):
         return ("No results returned", returnStatus)
