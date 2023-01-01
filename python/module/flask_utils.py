@@ -41,10 +41,11 @@ def readConfig(CM_PATH):
             with open(CM_PATH, 'r') as stream:
                 cmReturn = yaml.safe_load(stream)
         except Exception as e:
+            logger.info('Error reading from file! ' + CM_PATH + 'Assuming test mode!')
             raise ValueError('Error reading from file! ' + CM_PATH)
     else:
         cmReturn = {'MSG_TOPIC': 'sm', 'HEIR_KAFKA_HOST': 'kafka.fybrik-system:9092', 'VAULT_SECRET_PATH': None,
-                  'SECRET_NSPACE': 'fybrik-system', 'SECRET_FNAME': 'credentials-els',
+                  'SECRET_NSPACE': 'fybrik-system', 'SECRET_FNAME': 'credentials-els', 'BASE_URL' : 'http://localhost:5559',
                   'S3_URL': 'http://s3.eu.cloud-object-storage.appdomain.cloud', 'SUBMITTER': 'EliotSalant',
                   'SAFE_METADATA_URL':'http://localhost/safe-metadata-URL/', 'SAFE_VIDEO_URL':'http://localhost/safe-video-URL/',
                   'UNSAFE_METADATA_URL':'http://localhost/unsafe-metadata-video-URL/', 'UNSAFE_VIDEO_URL':'http://localhost/unsafe-video-URL/'}
@@ -146,7 +147,7 @@ def getAll(queryString=None):
                     else:
                         kafkaUtils.writeToKafka(jString, KAFKA_ALLOW_TOPIC)
         except:
-            logger.debug('OOps - opaDict does not return a result ' + str(opaDict))
+            logger.debug('Oops - opaDict does not return a result ' + str(opaDict))
             jString = \
                 "{\"user\": \"" + str(user) + "\"" + \
                 ", \"sub\": \"" + str(sub) + "\"" + \
@@ -180,15 +181,17 @@ def getAll(queryString=None):
             destinationURL = cmDict['BASE_URL']+request.path+'/quarantine'
         else:
             raise Exception('Error - bad situationStatus = ' + situationStatus)
-        resp = redirect(destinationURL)
-        ans = resp.data
-        returnStatus = resp.status_code
-        logger.debug('redirect returns status of ' + str(returnStatus))
+        logger.info("redirecting to " + destinationURL)
+ #       resp = redirect(destinationURL)
+ #       ans = resp.data
+ #       returnStatus = resp.status_code
+ #       logger.debug('redirect returns status of ' + str(returnStatus))
+   #     return(resp)
 
     logger.debug("destinationURL= " + destinationURL + "  request.method = " + request.method + " queryString = " + queryString)
     returnHeaders = ''
-    if request.method == 'GET':
-        ans, returnStatus = handleQuery(destinationURL, request)
+ #   if request.method == 'GET':
+    ans, returnStatus = handleQuery(destinationURL, request)
 
     if (ans is None or returnStatus != VALID_RETURN):
         return ("No results returned", returnStatus)

@@ -4,11 +4,13 @@ import os
 import re
 import curlify
 import logging
+import werkzeug
 
 logger = logging.getLogger('curl_utils.py')
 logger.setLevel(logging.DEBUG)
 
 TESTING = False
+
 if TESTING:
     OPA_SERVER = 'localhost'
 else:
@@ -77,9 +79,23 @@ def handleQuery(queryGatewayURL, request):
     httpAuthJSON = {'Authorization': request.headers.environ['HTTP_AUTHORIZATION']}
     try:
         if (request.method == 'POST'):
+ #           headers = werkzeug.datastructures.Headers()
+ #           headers.add('Content-Type', 'application/x-www-form-urlencoded')
+ #           headers.add('Content-Type', request.content_type)
  #           r = requests.post(curlString, headers=passedHeaders, data=values, params=args)  # breaks things..
  #           r = requests.post(curlString, data=values, params=args)                         # original code
-            r = requests.post(curlString, headers=httpAuthJSON,  files= request.files, data=request.form, params=request.args)
+ #           r = requests.post(curlString, headers=httpAuthJSON,  files= request.files, data=request.form, params=request.args)
+            if 'file' in request.files:
+                data = request.files['file']
+                logger.info('request.files found')
+            else:
+                if (request.content_type.startswith('application/json')):
+                    logger.info('application/json found')
+                    data = request.get_json()
+            newHeaders = dict(request.headers)
+            newHeaders.pop('Content-Length')
+            newHeaders.pop('Host')
+            r = requests.post(curlString, headers=newHeaders, data=data, params=request.args)
         else:
 #            r = requests.get(curlString, headers=passedHeaders, data=values, params=args)
 #            r = requests.get(curlString, data=values, params=args)
