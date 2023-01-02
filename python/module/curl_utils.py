@@ -5,6 +5,7 @@ import re
 import curlify
 import logging
 import werkzeug
+import json
 
 logger = logging.getLogger('curl_utils.py')
 logger.setLevel(logging.DEBUG)
@@ -90,8 +91,9 @@ def handleQuery(queryGatewayURL, request):
                 logger.info('request.files found')
             else:
                 if (request.content_type.startswith('application/json')):
-                    logger.info('application/json found')
-                    data = request.get_json()
+                    data = json.dumps(request.get_json()) if type(request.get_json()) == dict else request.get_json()
+       #             data = request.get_json()
+                    logger.info('application/json found, data = ' + data)
             newHeaders = dict(request.headers)
             newHeaders.pop('Content-Length')
             newHeaders.pop('Host')
